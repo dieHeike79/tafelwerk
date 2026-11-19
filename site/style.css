@@ -37,8 +37,9 @@ body {
 .top {
   display: flex;
   align-items: baseline;
+  flex-wrap: wrap;
   justify-content: space-between;
-  gap: 1rem;
+  gap: 0.25rem 1rem;
   padding: 1.5rem 0;
   border-bottom: 1px solid var(--line);
 }

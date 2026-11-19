@@ -6,7 +6,7 @@
   // ---------------------------------------------------------------
   const CONFIG = {
     // Name der Cafeteria (Überschrift + Seitentitel)
-    title: "Cafeteria",
+    title: "Cafeteria im Max Planck Institut",
     // Quelle des Speiseplans: die "Im Web veröffentlichen"-URL (CSV) aus Google Sheets.
     csvUrl: "https://docs.google.com/spreadsheets/d/e/2PACX-1vT_fCihwVSW7KWjxZt0G5pkmDRnV_x2Dd81sZe8UQqz-l8rmkNrz3CP9XlqOt8wZiuS4XSw8979wiEg/pub?gid=55366281&single=true&output=csv",
   };

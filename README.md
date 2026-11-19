@@ -68,7 +68,7 @@ Sollen Entwürfe nicht einsehbar sein, zwei Tabellenblätter verwenden:
 
 ## Noch offen
 
-- Name der Cafeteria (`CONFIG.title` in `app.js`), Logo und endgültige Farben
+- Logo und endgültige Farben (Name steht in `CONFIG.title` in `app.js` sowie in den Kopfzeilen von Impressum/Datenschutz)
 - Impressum/Datenschutz sind als Entwurf angelegt (`site/impressum.html`, `site/datenschutz.html`): Angaben prüfen,
   ggf. USt-IdNr. ergänzen. Keine Rechtsberatung.
 - Subdomain festlegen und Repo/Deploy einrichten
