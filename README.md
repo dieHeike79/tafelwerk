@@ -62,8 +62,10 @@ Sollen Entwürfe nicht einsehbar sein, zwei Tabellenblätter verwenden:
 
 1. Repo anlegen, Code auf `main` pushen.
 2. *Settings → Pages → Source: GitHub Actions*.
-3. Eigene Domain: *Settings → Pages → Custom domain* eintragen und beim Domain-Anbieter einen
-   `CNAME`-Eintrag (Subdomain) auf `<github-user>.github.io` setzen. *Enforce HTTPS* aktivieren.
+3. Eigene Domain `cafeteria.dieheike.de`: beim Domain-Anbieter einen DNS-Eintrag **CNAME** `cafeteria` →
+   `<github-user>.github.io` setzen (ohne Pfad, ohne `https://`). Dann *Settings → Pages → Custom domain*
+   `cafeteria.dieheike.de` eintragen und, sobald das Zertifikat bereit ist (kann einige Minuten dauern),
+   *Enforce HTTPS* aktivieren. Die Datei `site/CNAME` hält den Domainnamen im Repo fest.
 4. Empfohlen: Domain in den GitHub-Kontoeinstellungen verifizieren.
 
 ## Noch offen
