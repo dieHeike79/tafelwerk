@@ -118,9 +118,19 @@
   // Ein Tag erscheint nur, wenn "Freigegeben" ein Haken ist (TRUE/WAHR/ja/x/1); alles andere = nicht freigegeben.
   const isReleased = (value) => /^(true|wahr|ja|yes|x|1|✓|✔)$/i.test(String(value || "").trim());
 
+  // "5,5" / "5.50" / "5,50 €" -> "5,50 €"; anderer Text bleibt unverändert; leer -> "".
+  function formatPrice(text) {
+    const t = text.replace(/\s*(€|eur)\s*$/i, "").trim();
+    if (!t) return "";
+    if (/^\d+(?:[.,]\d{1,2})?$/.test(t)) {
+      return `${Number(t.replace(",", ".")).toFixed(2).replace(".", ",")} €`;
+    }
+    return text.trim();
+  }
+
   // Erwartete Spalten (Reihenfolge egal, Zuordnung über Name und Nummer):
-  //   Datum | Freigegeben | Gericht 1 | Englisch 1 | Gericht 2 | Englisch 2 | … | Hinweis | Hinweis Englisch
-  // Ergebnis: Map "yyyy-mm-dd" -> { dishes: [{de, en}], note: {de, en} }
+  //   Datum | Freigegeben | Gericht 1 | Englisch 1 | Preis klein 1 | Preis groß 1 | Gericht 2 | … | Hinweis | Hinweis Englisch
+  // Die Preisspalten sind optional. Ergebnis: Map "yyyy-mm-dd" -> { dishes: [{de, en, small, large}], note: {de, en} }
   function parseMenu(rows) {
     if (!rows.length) throw new Error("CSV ist leer");
     const header = rows[0].map((h) => h.trim().toLowerCase());
@@ -129,12 +139,16 @@
     const noteCol = header.findIndex((h) => /^hinweis(?!.*engl)/.test(h));
     const noteEnCol = header.findIndex((h) => /^hinweis.*engl/.test(h));
 
-    const slots = new Map(); // Nummer -> { de: Spalte, en: Spalte }
+    const slots = new Map(); // Nummer -> { de, en, small, large: Spalte }
+    const setSlot = (n, key, i) => slots.set(n, { ...slots.get(n), [key]: i });
     header.forEach((h, i) => {
       let m = /^gericht\s*(\d+)/.exec(h);
-      if (m) { slots.set(+m[1], { ...slots.get(+m[1]), de: i }); return; }
+      if (m) { setSlot(+m[1], "de", i); return; }
       m = /^engl\w*\s*(\d+)/.exec(h);
-      if (m) slots.set(+m[1], { ...slots.get(+m[1]), en: i });
+      if (m) { setSlot(+m[1], "en", i); return; }
+      // Preise: "Preis klein 1" / "Preis groß 1" (das Wort "Preis" ist optional)
+      m = /^(?:preis\s*)?(klein|gro(?:ß|ss))\s*(\d+)/.exec(h);
+      if (m) setSlot(+m[2], m[1] === "klein" ? "small" : "large", i);
     });
     const dishCols = [...slots.entries()].sort((a, b) => a[0] - b[0]).map(([, cols]) => cols);
     // Ohne Freigabe-Spalte wird bewusst nichts angezeigt (lieber leer als versehentlich veröffentlicht).
@@ -148,7 +162,12 @@
       const date = parseDate(row[dateCol]);
       if (!date || !isReleased(row[releasedCol])) continue;
       const dishes = dishCols
-        .map((c) => ({ de: cell(row, c.de), en: cell(row, c.en) }))
+        .map((c) => ({
+          de: cell(row, c.de),
+          en: cell(row, c.en),
+          small: formatPrice(cell(row, c.small)),
+          large: formatPrice(cell(row, c.large)),
+        }))
         .filter((d) => d.de);
       const note = { de: cell(row, noteCol), en: cell(row, noteEnCol) };
       menu.set(toKey(date), { dishes, note });
@@ -202,6 +221,23 @@
     }
   }
 
+  // Preise rechts. Sind beide Portionen angegeben, steht unter jedem Preis "Klein"/"Groß".
+  // Gibt es nur einen Preis (z. B. Dessert), steht er ohne Beschriftung in der letzten Spalte.
+  function renderPrices(dish) {
+    const price = (value, label, cls) => {
+      const cell = el("span", `price ${cls}`);
+      cell.append(el("span", "price-value", value));
+      if (label) cell.append(el("span", "price-label", label));
+      return cell;
+    };
+    if (dish.small && dish.large) {
+      return [price(dish.small, "Klein", "is-small"), price(dish.large, "Groß", "is-large")];
+    }
+    const single = dish.small || dish.large;
+    if (!single) return [];
+    return [price(single, "", "is-single")];
+  }
+
   function renderDay(date, index, entry, isToday) {
     const closed = !!(entry && entry.note.de);
     const card = el("article", "day");
@@ -223,9 +259,16 @@
       body.append(el("p", "closed-label", "Geschlossen · Closed"), note);
     } else if (entry && entry.dishes.length) {
       const list = el("ul", "dishes");
+      // 0 = keine Preise, 1 = nur Einzelpreise, 2 = Preise für klein und groß
+      const priceCols = entry.dishes.some((d) => d.small && d.large) ? 2
+        : entry.dishes.some((d) => d.small || d.large) ? 1 : 0;
+      list.dataset.prices = String(priceCols);
       for (const dish of entry.dishes) {
-        const item = el("li");
-        appendBilingual(item, dish);
+        const item = el("li", "dish");
+        const text = el("div", "dish-text");
+        appendBilingual(text, dish);
+        item.append(text);
+        if (priceCols) item.append(...renderPrices(dish));
         list.append(item);
       }
       body.append(list);

@@ -21,8 +21,8 @@ Dann <http://localhost:5173> öffnen. `#2026-12-21` hinter der URL springt zur j
 ## Google Sheet einrichten (einmalig)
 
 1. Neues Google Sheet mit der Kopfzeile:
-   `Datum | Freigegeben | Gericht 1 | Englisch 1 | Gericht 2 | Englisch 2 | Gericht 3 | Englisch 3 | Gericht 4 | Englisch 4 | Hinweis | Hinweis Englisch`
-   (die Kopfzeile am besten fixieren und nicht umbenennen). Die Spalte *Datum* als **Nur Text** oder im Format `yyyy-mm-dd` anlegen,
+   `Datum | Freigegeben | Gericht 1 | Englisch 1 | Preis klein 1 | Preis groß 1 | Gericht 2 | Englisch 2 | Preis klein 2 | Preis groß 2 | … | Gericht 4 | Englisch 4 | Preis klein 4 | Preis groß 4 | Hinweis | Hinweis Englisch`
+   (die Kopfzeile am besten fixieren und nicht umbenennen; fertige Vorlage mit Beispieldaten: `menu.sample.csv`, die Preise darin sind **Beispielwerte**). Die Spalte *Datum* als **Nur Text** oder im Format `yyyy-mm-dd` anlegen,
    die Spalte *Freigegeben* als Kontrollkästchen (*Einfügen → Kontrollkästchen*).
 2. *Datei → Freigeben → Im Web veröffentlichen* → Tabellenblatt wählen → Format **CSV** → veröffentlichen.
 3. Die erzeugte URL in `site/app.js` bei `CONFIG.csvUrl` eintragen.
@@ -40,6 +40,10 @@ Dann <http://localhost:5173> öffnen. `#2026-12-21` hinter der URL springt zur j
 - **Englische Übersetzung:** in die Spalte direkt neben dem Gericht (`Englisch 1` neben `Gericht 1` usw.).
   Sie erscheint kleiner und grau unter dem deutschen Namen. Bei *Hinweis* heißt die Spalte `Hinweis Englisch`.
   Bleibt die englische Zelle leer, wird nur die deutsche Zeile gezeigt.
+- **Preise:** je Gericht zwei Spalten, `Preis klein n` und `Preis groß n`, neben dem Gericht. Eingabe z. B. `5,50`, `5.5` oder `5,50 €`;
+  die Seite zeigt immer `5,50 €`. Sind beide Preise gefüllt, steht unter dem Preis „Klein" bzw. „Groß".
+  Gibt es nur eine Portion (z. B. Dessert), nur eine der beiden Zellen füllen: der Preis steht dann ohne Beschriftung rechts.
+  Preisspalten sind optional; fehlen sie im Sheet, zeigt die Seite einfach keine Preise.
 - Kennzeichnungen (vegan, Allergene …) schreibt er direkt in den Gerichtsnamen.
 - Änderungen sind nach wenigen Minuten sichtbar (Google aktualisiert die Veröffentlichung verzögert).
 

@@ -118,6 +118,7 @@ body {
   cursor: pointer;
 }
 
+.linkbtn { white-space: nowrap; }
 .linkbtn[hidden] { display: none; }
 
 button:focus-visible {
@@ -196,6 +197,38 @@ button:focus-visible {
   margin: 0;
   padding: 0;
   list-style: none;
+}
+
+.dish {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  column-gap: 1rem;
+  align-items: start;
+}
+
+.dishes[data-prices="1"] .dish { grid-template-columns: minmax(0, 1fr) 5rem; }
+.dishes[data-prices="2"] .dish { grid-template-columns: minmax(0, 1fr) 5rem 5rem; }
+.dishes[data-prices="2"] .price.is-single { grid-column: 3; }
+
+.price {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.price-value {
+  font-size: 1.1875rem;
+  font-weight: 500;
+  line-height: 1.35;
+}
+
+.price-label {
+  color: var(--muted);
+  font-size: 0.75rem;
+  letter-spacing: 0.04em;
+  line-height: 1.4;
 }
 
 .dish-de,
@@ -366,6 +399,9 @@ a.tag:hover { color: var(--ink); }
   .day { grid-template-columns: 1fr; gap: 0.75rem; padding: 1.5rem 0; }
   .day-head { flex-direction: row; align-items: baseline; flex-wrap: wrap; gap: 0.25rem 0.75rem; }
   .badge { margin-top: 0; }
+  .dishes[data-prices="1"] .dish { grid-template-columns: minmax(0, 1fr) 4.25rem; column-gap: 0.75rem; }
+  .dishes[data-prices="2"] .dish { grid-template-columns: minmax(0, 1fr) 4.25rem 4.25rem; column-gap: 0.75rem; }
+  .price-value { font-size: 1.0625rem; }
   .hours { grid-template-columns: 1fr; gap: 1rem; }
   .hours-title .en { display: inline; margin: 0 0 0 0.5rem; }
 }
