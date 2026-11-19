@@ -69,5 +69,10 @@ Sollen Entwürfe nicht einsehbar sein, zwei Tabellenblätter verwenden:
 ## Noch offen
 
 - Name der Cafeteria (`CONFIG.title` in `app.js`), Logo und endgültige Farben
-- Impressum/Datenschutz (für eine öffentliche Seite in Deutschland nötig)
+- Impressum/Datenschutz sind als Entwurf angelegt (`site/impressum.html`, `site/datenschutz.html`): Angaben prüfen,
+  ggf. USt-IdNr. ergänzen. Keine Rechtsberatung.
 - Subdomain festlegen und Repo/Deploy einrichten
+
+## Feste Inhalte (nicht im Sheet)
+
+Öffnungszeiten und Adresse stehen direkt in `site/index.html` (Abschnitte `.hours`). Bei Änderungen dort anpassen und pushen.

@@ -37,10 +37,55 @@
 
     <p id="status" class="status" role="status">Menüplan wird geladen …</p>
     <section id="days" class="days" aria-label="Speiseplan der Woche"></section>
+
+    <section class="hours" aria-labelledby="hours-title">
+      <h2 id="hours-title" class="hours-title">
+        Öffnungszeiten
+        <span class="en" lang="en">Opening hours</span>
+      </h2>
+      <dl class="hours-list">
+        <div class="hours-row">
+          <dt>Mo–Do <span class="en" lang="en">Mon–Thu</span></dt>
+          <dd>07:30 – 15:00 Uhr</dd>
+        </div>
+        <div class="hours-row">
+          <dt>Fr <span class="en" lang="en">Fri</span></dt>
+          <dd>07:30 – 14:30 Uhr</dd>
+        </div>
+        <div class="hours-row is-lunch">
+          <dt>Mittagstisch <span class="en" lang="en">Lunch</span></dt>
+          <dd>11:30 – 14:30 Uhr</dd>
+        </div>
+        <div class="hours-row is-closed">
+          <dt>Sa/So, Feiertage <span class="en" lang="en">Sat/Sun, public holidays</span></dt>
+          <dd>geschlossen <span class="en" lang="en">closed</span></dd>
+        </div>
+      </dl>
+    </section>
+
+    <section class="hours contact" aria-labelledby="contact-title">
+      <h2 id="contact-title" class="hours-title">
+        Hier finden Sie uns
+        <span class="en" lang="en">Find us</span>
+      </h2>
+      <address class="contact-body">
+        <p class="contact-name">Cafeteria im Max Planck Institut</p>
+        <p>
+          Inhaber: Steffen Strobel<br>
+          Deutscher Platz 6<br>
+          04103 Leipzig
+        </p>
+        <p>
+          Tel.: <a href="tel:+493413550190">+49 (341) 35 50 190</a><br>
+          E-Mail: cafeteria[at]eva.mpg.de
+        </p>
+      </address>
+    </section>
   </main>
 
   <footer class="wrap footer">
     <p>Änderungen vorbehalten.</p>
+    <p><a href="impressum.html">Impressum</a> · <a href="datenschutz.html">Datenschutz</a></p>
     <noscript><p>Für den Speiseplan wird JavaScript benötigt.</p></noscript>
   </footer>
 </body>
