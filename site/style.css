@@ -1,0 +1,274 @@
+:root {
+  --bg: #fcfcfb;
+  --ink: #0f0f10;
+  --muted: #6a6a6f;
+  --line: #e6e6e3;
+  --accent: #ff4d00; /* einzige Akzentfarbe: nur für Markierungen, nie für Fließtext */
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0e0e0f;
+    --ink: #f4f4f2;
+    --muted: #a0a0a6;
+    --line: #2a2a2d;
+  }
+}
+
+* { box-sizing: border-box; }
+
+html { -webkit-text-size-adjust: 100%; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font: 400 1.0625rem/1.5 system-ui, "Segoe UI Variable", "Segoe UI", -apple-system, Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+.wrap {
+  width: min(64rem, 100% - 3rem);
+  margin-inline: auto;
+}
+
+/* ---------- Kopf ---------- */
+
+.top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1.5rem 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.brand {
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.tag {
+  color: var(--muted);
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+/* ---------- Wochennavigation ---------- */
+
+.weeknav {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1.5rem;
+  padding: 3rem 0 1.5rem;
+}
+
+.weekinfo h2 {
+  margin: 0;
+  font-size: clamp(2.5rem, 8vw, 4rem);
+  line-height: 1;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+}
+
+.weekinfo p {
+  margin: 0.5rem 0 0;
+  color: var(--muted);
+}
+
+.weekctl {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.navbtn {
+  display: grid;
+  place-items: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  background: none;
+  color: var(--ink);
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.navbtn:hover {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--bg);
+}
+
+.linkbtn {
+  padding: 0.25rem 0.5rem;
+  border: 0;
+  background: none;
+  color: var(--ink);
+  font: 600 0.9rem/1.4 inherit;
+  text-decoration: underline;
+  text-underline-offset: 0.25em;
+  cursor: pointer;
+}
+
+.linkbtn[hidden] { display: none; }
+
+button:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 3px;
+}
+
+/* ---------- Status ---------- */
+
+.status {
+  margin: 0 0 1rem;
+  color: var(--muted);
+  font-size: 0.95rem;
+}
+
+.status:empty { display: none; }
+.status.is-warn { color: var(--ink); }
+.status.is-warn::before { content: "● "; color: var(--accent); }
+
+/* ---------- Tage ---------- */
+
+.days {
+  margin: 0 0 4rem;
+  border-bottom: 1px solid var(--line);
+}
+
+.day {
+  display: grid;
+  grid-template-columns: 11rem 1fr;
+  gap: 0.75rem 2rem;
+  padding: 1.75rem 0;
+  border-top: 1px solid var(--line);
+}
+
+.day-head {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.15rem;
+}
+
+.day-name {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+}
+
+.day-date {
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.day.is-today .day-name::before {
+  content: "";
+  width: 0.6rem;
+  height: 0.6rem;
+  border-radius: 50%;
+  background: var(--accent);
+}
+
+.badge {
+  margin-top: 0.25rem;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.dishes {
+  display: grid;
+  gap: 1rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.dish-de,
+.dish-en { display: block; }
+
+.dish-de {
+  font-size: 1.1875rem;
+  font-weight: 500;
+  line-height: 1.35;
+}
+
+.dish-en {
+  color: var(--muted);
+  font-size: 0.975rem;
+  line-height: 1.4;
+}
+
+/* geschlossen (Feiertag, Betriebsferien …) */
+
+.day.is-closed .day-name { color: var(--muted); }
+
+.closed-label {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.closed-note {
+  margin: 0.15rem 0 0;
+  color: var(--muted);
+}
+
+.closed-note .dish-de { font-weight: 500; }
+
+.pending {
+  margin: 0;
+  color: var(--muted);
+}
+
+.empty {
+  margin: 0;
+  padding: 4rem 0;
+  color: var(--muted);
+  text-align: center;
+}
+
+.footer {
+  padding-bottom: 2.5rem;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.footer p { margin: 0.25rem 0; }
+
+@media (max-width: 40rem) {
+  .wrap { width: min(64rem, 100% - 2rem); }
+  .weeknav { padding-top: 2rem; }
+  .day { grid-template-columns: 1fr; gap: 0.75rem; padding: 1.5rem 0; }
+  .day-head { flex-direction: row; align-items: baseline; flex-wrap: wrap; gap: 0.25rem 0.75rem; }
+  .badge { margin-top: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .navbtn { transition: none; }
+}
+
+/* ---------- Druck (Aushang) ---------- */
+
+@media print {
+  :root { --bg: #fff; --ink: #000; --muted: #444; --line: #bbb; }
+  .navbtn, .linkbtn, .status:empty, .footer { display: none; }
+  .weeknav { padding-top: 1.5rem; }
+  .day { break-inside: avoid; }
+}

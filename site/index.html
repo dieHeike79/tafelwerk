@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self' https://docs.google.com https://*.googleusercontent.com; base-uri 'none'; form-action 'none'">
+  <title>Cafeteria – Speiseplan</title>
+  <meta name="description" content="Der Speiseplan der Woche – Montag bis Freitag.">
+  <meta name="theme-color" content="#fcfcfb">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='34' fill='%23ff4d00'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="style.css">
+  <script src="app.js" defer></script>
+</head>
+<body>
+  <header class="wrap top">
+    <h1 class="brand" id="title">Cafeteria</h1>
+    <span class="tag">Speiseplan</span>
+  </header>
+
+  <main class="wrap">
+    <nav class="weeknav" aria-label="Woche wählen">
+      <div class="weekinfo">
+        <h2 id="weektitle">Kalenderwoche</h2>
+        <p id="weekrange"></p>
+      </div>
+      <div class="weekctl">
+        <button type="button" class="linkbtn" id="today" hidden>Aktuelle Woche</button>
+        <button type="button" class="navbtn" id="prev" aria-label="Vorherige Woche">
+          <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M15 5l-7 7 7 7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <button type="button" class="navbtn" id="next" aria-label="Nächste Woche">
+          <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M9 5l7 7-7 7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+      </div>
+    </nav>
+
+    <p id="status" class="status" role="status">Menüplan wird geladen …</p>
+    <section id="days" class="days" aria-label="Speiseplan der Woche"></section>
+  </main>
+
+  <footer class="wrap footer">
+    <p>Änderungen vorbehalten.</p>
+    <noscript><p>Für den Speiseplan wird JavaScript benötigt.</p></noscript>
+  </footer>
+</body>
+</html>
