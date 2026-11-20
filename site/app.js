@@ -128,50 +128,126 @@
     return text.trim();
   }
 
-  // Erwartete Spalten (Reihenfolge egal, Zuordnung über Name und Nummer):
-  //   Datum | Freigegeben | Gericht 1 | Englisch 1 | Preis klein 1 | Preis groß 1 | Gericht 2 | … | Hinweis | Hinweis Englisch
-  // Die Preisspalten sind optional. Ergebnis: Map "yyyy-mm-dd" -> { dishes: [{de, en, small, large}], note: {de, en} }
+  // Die 14 kennzeichnungspflichtigen Allergene (LMIV Anhang II), Buchstaben a–n in dieser Reihenfolge.
+  const ALLERGENS = {
+    a: ["Glutenhaltiges Getreide", "Cereals containing gluten"],
+    b: ["Krebstiere", "Crustaceans"],
+    c: ["Eier", "Eggs"],
+    d: ["Fisch", "Fish"],
+    e: ["Erdnüsse", "Peanuts"],
+    f: ["Soja", "Soy"],
+    g: ["Milch (Laktose)", "Milk (lactose)"],
+    h: ["Schalenfrüchte (Nüsse)", "Tree nuts"],
+    i: ["Sellerie", "Celery"],
+    j: ["Senf", "Mustard"],
+    k: ["Sesam", "Sesame"],
+    l: ["Sulfite (Schwefeldioxid)", "Sulphites"],
+    m: ["Lupinen", "Lupin"],
+    n: ["Weichtiere", "Molluscs"],
+  };
+
+  // Kennzeichnungen hinter "Suppe" / "Gericht n"
+  const TAGS = [
+    { de: "Vegan", en: "Vegan", re: /^vegan$/ },
+    { de: "Vegetarisch", en: "Vegetarian", re: /^(vegetarisch|veggie|vegetarian)$/ },
+    { de: "Glutenfrei", en: "Gluten-free", re: /^(gluten-?frei|gluten-?free)$/ },
+  ];
+  const findTag = (t) => TAGS.find((tag) => tag.re.test(t));
+
+  // "vegan, glutenfrei" -> [{de, en}, …]. Unbekannte Begriffe werden unverändert angezeigt.
+  // Vegan schließt "vegetarisch" ein, dann steht nur "Vegan" da.
+  function parseTags(text) {
+    const found = [];
+    const add = (tag) => { if (!found.some((f) => f.de === tag.de)) found.push(tag); };
+    for (const piece of text.split(/[,;/&+\n]+/)) {
+      const t = piece.trim().toLowerCase();
+      if (!t) continue;
+      const tag = findTag(t);
+      if (tag) { add(tag); continue; }
+      const words = t.split(/\s+/);
+      if (words.length > 1 && words.every(findTag)) { words.forEach((w) => add(findTag(w))); continue; }
+      add({ de: piece.trim(), en: "" });
+    }
+    return found.some((f) => f.de === "Vegan") ? found.filter((f) => f.de !== "Vegetarisch") : found;
+  }
+
+  // "a, g" / "a,g" / "ag" -> ["a", "g"]. Unbekannte Angaben bleiben sichtbar (lieber zu viel als ein Allergen verschweigen).
+  function parseAllergens(text) {
+    const letters = new Set();
+    const other = [];
+    for (const raw of text.split(/[\s,;./]+/)) {
+      const t = raw.trim().toLowerCase();
+      if (!t) continue;
+      if (/^[a-n]+$/.test(t)) [...t].forEach((c) => letters.add(c));
+      else if (!other.includes(t)) other.push(t);
+    }
+    return [...[...letters].sort(), ...other];
+  }
+
+  // "Suppe" -> Position 0, "Gericht 2" -> Position 2, "Hinweis" -> Tageshinweis (Feiertag / geschlossen).
+  function parsePosition(text) {
+    const t = String(text || "").trim().toLowerCase();
+    if (t === "suppe") return { kind: "dish", order: 0, label: "Suppe" };
+    const m = /^gericht\s*(\d+)$/.exec(t);
+    if (m) return { kind: "dish", order: +m[1], label: `Gericht ${+m[1]}` };
+    if (/^(hinweis|geschlossen|feiertag)$/.test(t)) return { kind: "note" };
+    return null;
+  }
+
+  // Eine Zeile pro Gericht (Spaltenreihenfolge egal, Zuordnung über den Namen):
+  //   Datum | Freigegeben | Position | Gericht | Englisch | Allergene | Kennzeichnung | Preis klein | Preis groß
+  // Position: Suppe, Gericht 1, Gericht 2, … oder Hinweis (Gericht/Englisch enthalten dann den Hinweistext).
+  // Allergene, Kennzeichnung und Preise sind optional.
+  // Ergebnis: Map "yyyy-mm-dd" -> { dishes: [{label, de, en, allergens, tags, small, large}], note: {de, en} }
   function parseMenu(rows) {
     if (!rows.length) throw new Error("CSV ist leer");
     const header = rows[0].map((h) => h.trim().toLowerCase());
-    const dateCol = header.findIndex((h) => h.startsWith("datum"));
-    const releasedCol = header.findIndex((h) => h.startsWith("freigegeben"));
-    const noteCol = header.findIndex((h) => /^hinweis(?!.*engl)/.test(h));
-    const noteEnCol = header.findIndex((h) => /^hinweis.*engl/.test(h));
-
-    const slots = new Map(); // Nummer -> { de, en, small, large: Spalte }
-    const setSlot = (n, key, i) => slots.set(n, { ...slots.get(n), [key]: i });
-    header.forEach((h, i) => {
-      let m = /^gericht\s*(\d+)/.exec(h);
-      if (m) { setSlot(+m[1], "de", i); return; }
-      m = /^engl\w*\s*(\d+)/.exec(h);
-      if (m) { setSlot(+m[1], "en", i); return; }
-      // Preise: "Preis klein 1" / "Preis groß 1" (das Wort "Preis" ist optional)
-      m = /^(?:preis\s*)?(klein|gro(?:ß|ss))\s*(\d+)/.exec(h);
-      if (m) setSlot(+m[2], m[1] === "klein" ? "small" : "large", i);
-    });
-    const dishCols = [...slots.entries()].sort((a, b) => a[0] - b[0]).map(([, cols]) => cols);
+    const col = (re) => header.findIndex((h) => re.test(h));
+    const cols = {
+      date: col(/^datum/),
+      released: col(/^freigegeben/),
+      position: col(/^position/),
+      de: col(/^gericht/),
+      en: col(/^engl/),
+      allergens: col(/^allergen/),
+      tags: col(/^kennzeichnung/),
+      small: col(/^(preis\s*)?klein/),
+      large: col(/^(preis\s*)?gro(ß|ss)/),
+    };
     // Ohne Freigabe-Spalte wird bewusst nichts angezeigt (lieber leer als versehentlich veröffentlicht).
-    if (dateCol < 0 || releasedCol < 0 || !dishCols.some((c) => c.de !== undefined)) {
-      throw new Error("Spalten 'Datum', 'Freigegeben' und 'Gericht 1 …' fehlen");
+    if (cols.date < 0 || cols.released < 0 || cols.position < 0 || cols.de < 0) {
+      throw new Error("Spalten 'Datum', 'Freigegeben', 'Position' und 'Gericht' fehlen");
     }
 
-    const cell = (row, col) => (col >= 0 && col !== undefined ? (row[col] || "").trim() : "");
+    const cell = (row, i) => (i >= 0 ? (row[i] || "").trim() : "");
     const menu = new Map();
     for (const row of rows.slice(1)) {
-      const date = parseDate(row[dateCol]);
-      if (!date || !isReleased(row[releasedCol])) continue;
-      const dishes = dishCols
-        .map((c) => ({
-          de: cell(row, c.de),
-          en: cell(row, c.en),
-          small: formatPrice(cell(row, c.small)),
-          large: formatPrice(cell(row, c.large)),
-        }))
-        .filter((d) => d.de);
-      const note = { de: cell(row, noteCol), en: cell(row, noteEnCol) };
-      menu.set(toKey(date), { dishes, note });
+      const date = parseDate(row[cols.date]);
+      const pos = parsePosition(row[cols.position]);
+      if (!date || !pos || !isReleased(row[cols.released])) continue;
+
+      const key = toKey(date);
+      if (!menu.has(key)) menu.set(key, { dishes: [], note: { de: "", en: "" } });
+      const entry = menu.get(key);
+      const de = cell(row, cols.de);
+      if (!de) continue;
+
+      if (pos.kind === "note") {
+        entry.note = { de, en: cell(row, cols.en) };
+      } else {
+        entry.dishes.push({
+          order: pos.order,
+          label: pos.label,
+          de,
+          en: cell(row, cols.en),
+          allergens: parseAllergens(cell(row, cols.allergens)),
+          tags: parseTags(cell(row, cols.tags)),
+          small: formatPrice(cell(row, cols.small)),
+          large: formatPrice(cell(row, cols.large)),
+        });
+      }
     }
+    for (const entry of menu.values()) entry.dishes.sort((a, b) => a.order - b.order);
     return menu;
   }
 
@@ -211,9 +287,19 @@
     return node;
   };
 
-  // Deutscher Haupttext, darunter (falls vorhanden) die englische Zeile.
-  function appendBilingual(parent, { de, en }) {
-    parent.append(el("span", "dish-de", de));
+  // Allergene als kleine, hochgestellte Buchstaben direkt hinter dem Namen: "Gulasch mit Nudeln ᵃ,ⁱ"
+  function renderAllergens(list) {
+    const sup = el("sup", "allergens");
+    sup.append(el("span", "sr-only", "Allergene: "), document.createTextNode(list.join(",")));
+    sup.title = list.map((k) => (ALLERGENS[k] ? ALLERGENS[k][0] : k)).join(", ");
+    return sup;
+  }
+
+  // Deutscher Haupttext (optional mit Allergenen), darunter (falls vorhanden) die englische Zeile.
+  function appendBilingual(parent, { de, en }, allergens = []) {
+    const main = el("span", "dish-de", de);
+    if (allergens.length) main.append(renderAllergens(allergens));
+    parent.append(main);
     if (en) {
       const line = el("span", "dish-en", en);
       line.lang = "en";
@@ -236,6 +322,23 @@
     const single = dish.small || dish.large;
     if (!single) return [];
     return [price(single, "", "is-single")];
+  }
+
+  // Eine Zeile: "SUPPE  [Vegan]" darüber, darunter Name mit Allergenen, Englisch und rechts die Preise.
+  function renderDish(dish, priceCols) {
+    const item = el("li", "dish");
+    const meta = el("div", "dish-meta");
+    meta.append(el("span", "dish-pos", dish.label));
+    for (const tag of dish.tags) {
+      const pill = el("span", "pill", tag.de);
+      if (tag.en) pill.title = tag.en;
+      meta.append(pill);
+    }
+    const text = el("div", "dish-text");
+    appendBilingual(text, dish, dish.allergens);
+    item.append(meta, text);
+    if (priceCols) item.append(...renderPrices(dish));
+    return item;
   }
 
   function renderDay(date, index, entry, isToday) {
@@ -263,14 +366,7 @@
       const priceCols = entry.dishes.some((d) => d.small && d.large) ? 2
         : entry.dishes.some((d) => d.small || d.large) ? 1 : 0;
       list.dataset.prices = String(priceCols);
-      for (const dish of entry.dishes) {
-        const item = el("li", "dish");
-        const text = el("div", "dish-text");
-        appendBilingual(text, dish);
-        item.append(text);
-        if (priceCols) item.append(...renderPrices(dish));
-        list.append(item);
-      }
+      for (const dish of entry.dishes) list.append(renderDish(dish, priceCols));
       body.append(list);
     } else {
       body.append(el("p", "pending", "Noch nicht geplant"));
@@ -286,7 +382,7 @@
   const $ = (id) => document.getElementById(id);
   const ui = {
     title: $("title"), weekTitle: $("weektitle"), weekRange: $("weekrange"),
-    days: $("days"), status: $("status"),
+    days: $("days"), status: $("status"), legend: $("legend"), legendList: $("legend-list"),
     prev: $("prev"), next: $("next"), today: $("today"),
   };
 
@@ -313,10 +409,31 @@
 
     if (entries.every(({ entry }) => !entry)) {
       ui.days.replaceChildren(el("p", "empty", "Der Menüplan für diese Woche folgt."));
+      renderLegend([]);
       return;
     }
     ui.days.replaceChildren(
       ...entries.map(({ date, entry }, i) => renderDay(date, i, entry, toKey(date) === todayKey)),
+    );
+    // Legende nur für die Allergene, die in dieser Woche vorkommen
+    const used = new Set();
+    for (const { entry } of entries) {
+      if (!entry || entry.note.de) continue;
+      for (const dish of entry.dishes) dish.allergens.forEach((k) => ALLERGENS[k] && used.add(k));
+    }
+    renderLegend([...used].sort());
+  }
+
+  function renderLegend(keys) {
+    ui.legend.hidden = keys.length === 0;
+    ui.legendList.replaceChildren(
+      ...keys.map((k) => {
+        const item = el("li", "legend-item");
+        const en = el("span", "en", ALLERGENS[k][1]);
+        en.lang = "en";
+        item.append(el("b", "legend-key", k), document.createTextNode(ALLERGENS[k][0] + " "), en);
+        return item;
+      }),
     );
   }
 

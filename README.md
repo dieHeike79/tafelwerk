@@ -20,9 +20,13 @@ Dann <http://localhost:5173> öffnen. `#2026-12-21` hinter der URL springt zur j
 
 ## Google Sheet einrichten (einmalig)
 
-1. Neues Google Sheet mit der Kopfzeile:
-   `Datum | Freigegeben | Gericht 1 | Englisch 1 | Preis klein 1 | Preis groß 1 | Gericht 2 | Englisch 2 | Preis klein 2 | Preis groß 2 | … | Gericht 4 | Englisch 4 | Preis klein 4 | Preis groß 4 | Hinweis | Hinweis Englisch`
-   (die Kopfzeile am besten fixieren und nicht umbenennen; fertige Vorlage mit Beispieldaten: `menu.sample.csv`, die Preise darin sind **Beispielwerte**). Die Spalte *Datum* als **Nur Text** oder im Format `yyyy-mm-dd` anlegen,
+**Eine Zeile pro Gericht**, vier Zeilen pro Tag (Suppe, Gericht 1–3). Kopfzeile:
+
+`Datum | Freigegeben | Position | Gericht | Englisch | Allergene | Kennzeichnung | Preis klein | Preis groß`
+
+1. Neues Google Sheet, die Datei `menu.sample.csv` importieren (*Datei → Importieren → Hochladen*, Trennzeichen Komma).
+   Sie enthält die Kopfzeile und **Beispieldaten** (alle Gerichte, Allergene und Preise darin sind erfunden und werden ersetzt).
+   Die Kopfzeile am besten fixieren und nicht umbenennen. Die Spalte *Datum* im Format `yyyy-mm-dd` oder als **Nur Text**,
    die Spalte *Freigegeben* als Kontrollkästchen (*Einfügen → Kontrollkästchen*).
 2. *Datei → Freigeben → Im Web veröffentlichen* → Tabellenblatt wählen → Format **CSV** → veröffentlichen.
 3. Die erzeugte URL in `site/app.js` bei `CONFIG.csvUrl` eintragen.
@@ -30,22 +34,27 @@ Dann <http://localhost:5173> öffnen. `#2026-12-21` hinter der URL springt zur j
 
 ## Wöchentlich einpflegen (Chef)
 
-- Eine Zeile pro Tag, Montag bis Freitag. Einfach die Zeilen der Vorwoche kopieren und Datum/Gerichte ändern.
-- **Freigabe:** Nur Tage mit gesetztem Haken in *Freigegeben* erscheinen auf der Seite. Ohne Haken (oder leer) bleibt der
-  Tag unsichtbar, die Seite zeigt dann „Noch nicht geplant" bzw. „Der Menüplan für diese Woche folgt".
-  Für eine ganze Woche die fünf Kästchen markieren und einmal anhaken.
-  Fehlt die Spalte *Freigegeben* ganz, zeigt die Seite bewusst gar nichts an.
-- **Feiertag / geschlossen:** in der Spalte *Hinweis* den Grund eintragen (z. B. `Tag der Deutschen Einheit`).
-  Die Gerichte dieses Tages werden dann nicht angezeigt.
-- **Englische Übersetzung:** in die Spalte direkt neben dem Gericht (`Englisch 1` neben `Gericht 1` usw.).
-  Sie erscheint kleiner und grau unter dem deutschen Namen. Bei *Hinweis* heißt die Spalte `Hinweis Englisch`.
-  Bleibt die englische Zelle leer, wird nur die deutsche Zeile gezeigt.
-- **Preise:** je Gericht zwei Spalten, `Preis klein n` und `Preis groß n`, neben dem Gericht. Eingabe z. B. `5,50`, `5.5` oder `5,50 €`;
-  die Seite zeigt immer `5,50 €`. Sind beide Preise gefüllt, steht unter dem Preis „Klein" bzw. „Groß".
-  Gibt es nur eine Portion (z. B. Dessert), nur eine der beiden Zellen füllen: der Preis steht dann ohne Beschriftung rechts.
-  Preisspalten sind optional; fehlen sie im Sheet, zeigt die Seite einfach keine Preise.
-- Kennzeichnungen (vegan, Allergene …) schreibt er direkt in den Gerichtsnamen.
-- Änderungen sind nach wenigen Minuten sichtbar (Google aktualisiert die Veröffentlichung verzögert).
+Pro Tag vier Zeilen mit demselben Datum, Spalte *Position*: `Suppe`, `Gericht 1`, `Gericht 2`, `Gericht 3`.
+Am einfachsten die 20 Zeilen der Vorwoche kopieren und Datum und Gerichte ändern.
+
+| Spalte | Eingabe |
+|---|---|
+| *Freigegeben* | Haken setzen = erscheint auf der Seite. Ohne Haken bleibt die **Zeile** unsichtbar (Entwurf). Für eine ganze Woche die Zeilen markieren und einmal anhaken. Fehlt die Spalte ganz, zeigt die Seite bewusst nichts an. |
+| *Position* | `Suppe`, `Gericht 1`, `Gericht 2`, `Gericht 3` (mehr Gerichte: `Gericht 4` usw.) oder `Hinweis` (siehe unten). Die Reihenfolge der Zeilen ist egal. |
+| *Gericht* / *Englisch* | Deutscher Name und englische Übersetzung (erscheint kleiner und grau darunter, darf leer sein). |
+| *Allergene* | Buchstaben a–n, durch Komma getrennt, z. B. `a,g,i`. Sie stehen klein und hochgestellt am Namen. Unter dem Plan erscheint automatisch eine Legende für die Buchstaben der Woche. Alles andere (z. B. `Gluten`) wird unverändert angezeigt, damit nie ein Allergen verschwindet. |
+| *Kennzeichnung* | `vegan`, `vegetarisch`, `glutenfrei`, mehrere mit Komma (`vegan, glutenfrei`). Erscheint als Pille hinter „Suppe" / „Gericht 1". `vegan` schließt `vegetarisch` ein. |
+| *Preis klein* / *Preis groß* | z. B. `5,50`, `5.5` oder `5,50 €`; die Seite zeigt immer `5,50 €`. Sind beide gefüllt, steht darunter „Klein" bzw. „Groß". Gibt es nur eine Portion, nur eine der Zellen füllen: Der Preis steht dann ohne Beschriftung rechts. |
+
+**Allergen-Buchstaben** (die 14 Pflichtallergene, Reihenfolge der LMIV):
+a Glutenhaltiges Getreide · b Krebstiere · c Eier · d Fisch · e Erdnüsse · f Soja · g Milch (Laktose) ·
+h Schalenfrüchte (Nüsse) · i Sellerie · j Senf · k Sesam · l Sulfite · m Lupinen · n Weichtiere.
+Die Zuordnung steht in `ALLERGENS` in `site/app.js`.
+
+**Feiertag / geschlossen:** eine Zeile mit *Position* `Hinweis`, in *Gericht* den Grund (z. B. `Tag der Deutschen Einheit`),
+in *Englisch* die Übersetzung. Die Gerichte dieses Tages werden dann nicht angezeigt. Samstag und Sonntag brauchen keine Zeilen.
+
+Änderungen sind nach wenigen Minuten sichtbar (Google aktualisiert die Veröffentlichung verzögert).
 
 ## Entwürfe wirklich geheim halten (optional)
 
@@ -54,10 +63,10 @@ und ihre URL steht im öffentlichen Code. Wer sie öffnet, kann auch unfreigegeb
 Sollen Entwürfe nicht einsehbar sein, zwei Tabellenblätter verwenden:
 
 - **Entwurf:** hier pflegt der Chef alles, inklusive Haken. Dieses Blatt wird **nicht** veröffentlicht.
-- **Veröffentlicht:** enthält nur die freigegebenen Zeilen, per Formel in Zelle A1 (Beispiel für Spalten A–L):
+- **Veröffentlicht:** enthält nur die freigegebenen Zeilen, per Formel in Zelle A1 (Beispiel für Spalten A–I):
 
   ```
-  =IFERROR({Entwurf!A1:L1; FILTER(Entwurf!A2:L; Entwurf!B2:B)}; Entwurf!A1:L1)
+  =IFERROR({Entwurf!A1:I1; FILTER(Entwurf!A2:I; Entwurf!B2:B)}; Entwurf!A1:I1)
   ```
 
   Nur dieses Blatt wird per *Im Web veröffentlichen* als CSV freigegeben, und seine `gid` steht in der URL in `app.js`.
