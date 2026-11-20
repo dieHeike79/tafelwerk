@@ -43,7 +43,7 @@ Am einfachsten die 20 Zeilen der Vorwoche kopieren und Datum und Gerichte änder
 | *Position* | `Suppe`, `Gericht 1`, `Gericht 2`, `Gericht 3` (mehr Gerichte: `Gericht 4` usw.) oder `Hinweis` (siehe unten). Die Reihenfolge der Zeilen ist egal. |
 | *Gericht* / *Englisch* | Deutscher Name und englische Übersetzung (erscheint kleiner und grau darunter, darf leer sein). |
 | *Allergene* | Buchstaben a–n, durch Komma getrennt, z. B. `a,g,i`. Sie stehen klein und hochgestellt am Namen. Unter dem Plan erscheint automatisch eine Legende für die Buchstaben der Woche. Alles andere (z. B. `Gluten`) wird unverändert angezeigt, damit nie ein Allergen verschwindet. |
-| *Kennzeichnung* | `vegan`, `vegetarisch`, `glutenfrei`, mehrere mit Komma (`vegan, glutenfrei`). Erscheint als Pille hinter „Suppe" / „Gericht 1". `vegan` schließt `vegetarisch` ein. |
+| *Kennzeichnung* | `vegan`, `vegetarisch`, `glutenfrei`, mehrere mit Komma oder Schrägstrich (`vegan, glutenfrei`). Erscheint als Pille hinter „Suppe" / „Gericht 1": vegan kräftig grün, vegetarisch hell grün, glutenfrei braun. Was eingetragen ist, wird angezeigt (`vegan / vegetarisch` zeigt beide). |
 | *Preis klein* / *Preis groß* | z. B. `5,50`, `5.5` oder `5,50 €`; die Seite zeigt immer `5,50 €`. Sind beide gefüllt, steht darunter „Klein" bzw. „Groß". Gibt es nur eine Portion, nur eine der Zellen füllen: Der Preis steht dann ohne Beschriftung rechts. |
 
 **Allergen-Buchstaben** (die 14 Pflichtallergene, Reihenfolge der LMIV):

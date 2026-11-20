@@ -148,14 +148,13 @@
 
   // Kennzeichnungen hinter "Suppe" / "Gericht n"
   const TAGS = [
-    { de: "Vegan", en: "Vegan", re: /^vegan$/ },
-    { de: "Vegetarisch", en: "Vegetarian", re: /^(vegetarisch|veggie|vegetarian)$/ },
-    { de: "Glutenfrei", en: "Gluten-free", re: /^(gluten-?frei|gluten-?free)$/ },
+    { key: "vegan", de: "Vegan", en: "Vegan", re: /^vegan$/ },
+    { key: "vegetarisch", de: "Vegetarisch", en: "Vegetarian", re: /^(vegetarisch|veggie|vegetarian)$/ },
+    { key: "glutenfrei", de: "Glutenfrei", en: "Gluten-free", re: /^(gluten-?frei|gluten-?free)$/ },
   ];
   const findTag = (t) => TAGS.find((tag) => tag.re.test(t));
 
   // "vegan, glutenfrei" -> [{de, en}, …]. Unbekannte Begriffe werden unverändert angezeigt.
-  // Vegan schließt "vegetarisch" ein, dann steht nur "Vegan" da.
   function parseTags(text) {
     const found = [];
     const add = (tag) => { if (!found.some((f) => f.de === tag.de)) found.push(tag); };
@@ -168,7 +167,8 @@
       if (words.length > 1 && words.every(findTag)) { words.forEach((w) => add(findTag(w))); continue; }
       add({ de: piece.trim(), en: "" });
     }
-    return found.some((f) => f.de === "Vegan") ? found.filter((f) => f.de !== "Vegetarisch") : found;
+    // Was der Chef nennt, steht da: "vegan / vegetarisch" bedeutet z. B. vegan ohne, vegetarisch mit Käse.
+    return found;
   }
 
   // "a, g" / "a,g" / "ag" -> ["a", "g"]. Unbekannte Angaben bleiben sichtbar (lieber zu viel als ein Allergen verschweigen).
@@ -330,7 +330,7 @@
     const meta = el("div", "dish-meta");
     meta.append(el("span", "dish-pos", dish.label));
     for (const tag of dish.tags) {
-      const pill = el("span", "pill", tag.de);
+      const pill = el("span", tag.key ? `pill is-${tag.key}` : "pill", tag.de);
       if (tag.en) pill.title = tag.en;
       meta.append(pill);
     }

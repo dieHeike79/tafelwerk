@@ -4,6 +4,11 @@
   --muted: #6a6a6f;
   --line: #e6e6e3;
   --accent: #ff4d00; /* einzige Akzentfarbe: nur für Markierungen, nie für Fließtext */
+
+  /* Kennzeichnungen: dezent getönt, Text und Fläche jeweils mit ausreichend Kontrast */
+  --vegan-fg: #17562f;       --vegan-bg: #d7eddd;       --vegan-line: #b4d9bf;
+  --veg-fg: #2a6b40;         --veg-bg: #eef7f0;         --veg-line: #b5d9c0;
+  --gluten-fg: #7a4a21;      --gluten-bg: #f4ebe1;      --gluten-line: #e0cdb8;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -12,6 +17,10 @@
     --ink: #f4f4f2;
     --muted: #a0a0a6;
     --line: #2a2a2d;
+
+    --vegan-fg: #8fd3a3;     --vegan-bg: #17301f;     --vegan-line: #285238;
+    --veg-fg: #86c79a;       --veg-bg: #131f17;       --veg-line: #2b4a37;
+    --gluten-fg: #d9ad82;    --gluten-bg: #2c2118;    --gluten-line: #4d3a27;
   }
 }
 
@@ -237,6 +246,11 @@ button:focus-visible {
   line-height: 1.55;
   white-space: nowrap;
 }
+
+/* Vegan kräftiger, vegetarisch heller (beide grün), glutenfrei braun */
+.pill.is-vegan { color: var(--vegan-fg); background: var(--vegan-bg); border-color: var(--vegan-line); }
+.pill.is-vegetarisch { color: var(--veg-fg); background: var(--veg-bg); border-color: var(--veg-line); }
+.pill.is-glutenfrei { color: var(--gluten-fg); background: var(--gluten-bg); border-color: var(--gluten-line); }
 
 /* Allergene: klein und hochgestellt direkt am Namen */
 .allergens {
