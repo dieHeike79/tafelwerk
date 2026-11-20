@@ -42,14 +42,20 @@ Am einfachsten die 20 Zeilen der Vorwoche kopieren und Datum und Gerichte änder
 | *Freigegeben* | Haken setzen = erscheint auf der Seite. Ohne Haken bleibt die **Zeile** unsichtbar (Entwurf). Für eine ganze Woche die Zeilen markieren und einmal anhaken. Fehlt die Spalte ganz, zeigt die Seite bewusst nichts an. |
 | *Position* | `Suppe`, `Gericht 1`, `Gericht 2`, `Gericht 3` (mehr Gerichte: `Gericht 4` usw.) oder `Hinweis` (siehe unten). Die Reihenfolge der Zeilen ist egal. |
 | *Gericht* / *Englisch* | Deutscher Name und englische Übersetzung (erscheint kleiner und grau darunter, darf leer sein). |
-| *Allergene* | Buchstaben a–n, durch Komma getrennt, z. B. `a,g,i`. Sie stehen klein und hochgestellt am Namen. Unter dem Plan erscheint automatisch eine Legende für die Buchstaben der Woche. Alles andere (z. B. `Gluten`) wird unverändert angezeigt, damit nie ein Allergen verschwindet. |
+| *Allergene* | Kürzel aus dem Tabellenblatt *Allergene*, durch Komma getrennt, z. B. `a,g,i` oder `a1,c`. Sie stehen klein und hochgestellt am Namen. Unter dem Plan erscheint automatisch eine Legende für die Kürzel der Woche. Ein Kürzel, das im Tabellenblatt fehlt (oder ein Wort wie `Gluten`), wird unverändert angezeigt, damit nie ein Allergen verschwindet. |
 | *Kennzeichnung* | `vegan`, `vegetarisch`, `glutenfrei`, mehrere mit Komma oder Schrägstrich (`vegan, glutenfrei`). Erscheint als Pille hinter „Suppe" / „Gericht 1": vegan kräftig grün, vegetarisch hell grün, glutenfrei braun. Was eingetragen ist, wird angezeigt (`vegan / vegetarisch` zeigt beide). |
 | *Preis klein* / *Preis groß* | z. B. `5,50`, `5.5` oder `5,50 €`; die Seite zeigt immer `5,50 €`. Sind beide gefüllt, steht darunter „Klein" bzw. „Groß". Gibt es nur eine Portion, nur eine der Zellen füllen: Der Preis steht dann ohne Beschriftung rechts. |
 
-**Allergen-Buchstaben** (die 14 Pflichtallergene, Reihenfolge der LMIV):
-a Glutenhaltiges Getreide · b Krebstiere · c Eier · d Fisch · e Erdnüsse · f Soja · g Milch (Laktose) ·
-h Schalenfrüchte (Nüsse) · i Sellerie · j Senf · k Sesam · l Sulfite · m Lupinen · n Weichtiere.
-Die Zuordnung steht in `ALLERGENS` in `site/app.js`.
+**Allergen-Kürzel pflegt der Chef selbst** in einem zweiten Tabellenblatt namens *Allergene* im selben Google Sheet:
+
+`Allergen | Name de | Name en`
+
+- Eine Zeile pro Kürzel, z. B. `a1 | Weizen | Wheat`. Die Reihenfolge der Zeilen ist die Reihenfolge in der Legende und an den Gerichten.
+- Einrichten: `allergene.sample.csv` (die 14 Pflichtallergene a–n als Startwert) in ein neues Tabellenblatt importieren und anpassen.
+  Dann dieses Blatt wie das Menü *Im Web veröffentlichen* (CSV) und die URL in `site/app.js` bei `CONFIG.allergensUrl` eintragen.
+- Solange `allergensUrl` leer ist, gilt eine eingebaute Standardliste a–n.
+- Ist die Tabelle konfiguriert, aber nicht erreichbar (und im Browser nichts gespeichert), zeigt die Seite die Kürzel mit dem Hinweis,
+  dass die Erklärung gerade fehlt. Eine Ersatzliste gibt es bewusst nicht, damit nie ein Kürzel falsch erklärt wird.
 
 **Feiertag / geschlossen:** eine Zeile mit *Position* `Hinweis`, in *Gericht* den Grund (z. B. `Tag der Deutschen Einheit`),
 in *Englisch* die Übersetzung. Die Gerichte dieses Tages werden dann nicht angezeigt. Samstag und Sonntag brauchen keine Zeilen.

@@ -8,10 +8,14 @@
     // Name der Cafeteria (Überschrift + Seitentitel)
     title: "Cafeteria im Max Planck Institut",
     // Quelle des Speiseplans: die "Im Web veröffentlichen"-URL (CSV) aus Google Sheets.
-    csvUrl: "https://docs.google.com/spreadsheets/d/e/2PACX-1vT_fCihwVSW7KWjxZt0G5pkmDRnV_x2Dd81sZe8UQqz-l8rmkNrz3CP9XlqOt8wZiuS4XSw8979wiEg/pub?gid=150620554&single=true&output=csv"
+    csvUrl: "https://docs.google.com/spreadsheets/d/e/2PACX-1vT_fCihwVSW7KWjxZt0G5pkmDRnV_x2Dd81sZe8UQqz-l8rmkNrz3CP9XlqOt8wZiuS4XSw8979wiEg/pub?gid=150620554&single=true&output=csv",
+    // Legende der Allergene (Tabellenblatt "Allergene": Allergen | Name de | Name en), ebenfalls als CSV veröffentlicht.
+    // Leer lassen = eingebaute Standardliste a–n (siehe DEFAULT_ALLERGENS).
+    allergensUrl: "",
   };
 
   const CACHE_KEY = "cafeteria-menu-csv-v1";
+  const ALLERGEN_CACHE_KEY = "cafeteria-allergens-csv-v1";
   const DAY_NAMES = ["Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag"];
   const MONTHS = [
     "Januar", "Februar", "März", "April", "Mai", "Juni",
@@ -128,8 +132,8 @@
     return text.trim();
   }
 
-  // Die 14 kennzeichnungspflichtigen Allergene (LMIV Anhang II), Buchstaben a–n in dieser Reihenfolge.
-  const ALLERGENS = {
+  // Standardliste, nur wenn CONFIG.allergensUrl leer ist: die 14 Pflichtallergene (LMIV Anhang II), a–n in dieser Reihenfolge.
+  const DEFAULT_ALLERGENS = new Map(Object.entries({
     a: ["Glutenhaltiges Getreide", "Cereals containing gluten"],
     b: ["Krebstiere", "Crustaceans"],
     c: ["Eier", "Eggs"],
@@ -144,7 +148,26 @@
     l: ["Sulfite (Schwefeldioxid)", "Sulphites"],
     m: ["Lupinen", "Lupin"],
     n: ["Weichtiere", "Molluscs"],
-  };
+  }).map(([code, [de, en]]) => [code, { de, en }]));
+
+  // Tabellenblatt "Allergene": Allergen (Kürzel) | Name de | Name en  ->  Map Kürzel -> { de, en }, in Tabellenreihenfolge.
+  function parseAllergenSheet(rows) {
+    if (!rows.length) throw new Error("Allergen-CSV ist leer");
+    const header = rows[0].map((h) => h.trim().toLowerCase());
+    const col = (re) => header.findIndex((h) => re.test(h));
+    const codeCol = col(/^(allergen|code|kürzel|kuerzel)/);
+    const deCol = col(/^name\s*de|(^|\s)(de|deutsch)$/);
+    const enCol = col(/^name\s*en|(^|\s)(en|englisch|english)$/);
+    if (codeCol < 0 || deCol < 0) throw new Error("Spalten 'Allergen' und 'Name de' fehlen");
+    const defs = new Map();
+    for (const row of rows.slice(1)) {
+      const code = (row[codeCol] || "").trim().toLowerCase();
+      if (!code) continue;
+      defs.set(code, { de: (row[deCol] || "").trim(), en: enCol >= 0 ? (row[enCol] || "").trim() : "" });
+    }
+    if (!defs.size) throw new Error("Allergen-Tabelle enthält keine Einträge");
+    return defs;
+  }
 
   // Kennzeichnungen hinter "Suppe" / "Gericht n"
   const TAGS = [
@@ -171,17 +194,30 @@
     return found;
   }
 
-  // "a, g" / "a,g" / "ag" -> ["a", "g"]. Unbekannte Angaben bleiben sichtbar (lieber zu viel als ein Allergen verschweigen).
-  function parseAllergens(text) {
-    const letters = new Set();
-    const other = [];
+  // "a, g,i" -> ["a", "g", "i"] (nur zerlegt; was die Kürzel bedeuten, steht erst beim Anzeigen fest).
+  function tokenizeAllergens(text) {
+    const tokens = [];
     for (const raw of text.split(/[\s,;./]+/)) {
       const t = raw.trim().toLowerCase();
-      if (!t) continue;
-      if (/^[a-n]+$/.test(t)) [...t].forEach((c) => letters.add(c));
-      else if (!other.includes(t)) other.push(t);
+      if (t && !tokens.includes(t)) tokens.push(t);
     }
-    return [...[...letters].sort(), ...other];
+    return tokens;
+  }
+
+  // Passt die Angaben zur Allergen-Tabelle: "ag" -> a, g (wenn es kein Kürzel "ag" gibt), Reihenfolge wie in der Tabelle.
+  // Unbekannte Angaben bleiben sichtbar (lieber zu viel als ein Allergen verschweigen) und stehen am Ende.
+  function resolveAllergens(tokens, defs) {
+    const out = [];
+    const add = (t) => { if (!out.includes(t)) out.push(t); };
+    for (const t of tokens) {
+      if (!defs || defs.has(t)) add(t);
+      else if (/^[a-z]+$/.test(t) && [...t].every((c) => defs.has(c))) [...t].forEach(add);
+      else add(t);
+    }
+    if (!defs) return out.sort();
+    const order = [...defs.keys()];
+    const rank = (t) => { const i = order.indexOf(t); return i < 0 ? Infinity : i; };
+    return out.sort((a, b) => (rank(a) - rank(b)) || (a < b ? -1 : a > b ? 1 : 0));
   }
 
   // "Suppe" -> Position 0, "Gericht 2" -> Position 2, "Hinweis" -> Tageshinweis (Feiertag / geschlossen).
@@ -240,7 +276,7 @@
           label: pos.label,
           de,
           en: cell(row, cols.en),
-          allergens: parseAllergens(cell(row, cols.allergens)),
+          allergens: tokenizeAllergens(cell(row, cols.allergens)),
           tags: parseTags(cell(row, cols.tags)),
           small: formatPrice(cell(row, cols.small)),
           large: formatPrice(cell(row, cols.large)),
@@ -251,12 +287,32 @@
     return menu;
   }
 
-  function readCache() {
-    try { return localStorage.getItem(CACHE_KEY); } catch { return null; }
+  function readCache(key = CACHE_KEY) {
+    try { return localStorage.getItem(key); } catch { return null; }
   }
 
-  function writeCache(text) {
-    try { localStorage.setItem(CACHE_KEY, text); } catch { /* Speicher evtl. gesperrt */ }
+  function writeCache(text, key = CACHE_KEY) {
+    try { localStorage.setItem(key, text); } catch { /* Speicher evtl. gesperrt */ }
+  }
+
+  // Allergen-Legende: frisch aus dem Tabellenblatt, sonst zuletzt gespeicherter Stand.
+  // Absichtlich ohne eingebaute Ersatzliste: eine fremde Standardliste könnte andere Kürzel bedeuten als die des Chefs.
+  async function loadAllergens() {
+    if (!CONFIG.allergensUrl) return DEFAULT_ALLERGENS;
+    try {
+      const res = await fetch(CONFIG.allergensUrl, { cache: "no-cache", signal: AbortSignal.timeout(8000) });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const text = await res.text();
+      const defs = parseAllergenSheet(parseCsv(text));
+      writeCache(text, ALLERGEN_CACHE_KEY);
+      return defs;
+    } catch (err) {
+      const cached = readCache(ALLERGEN_CACHE_KEY);
+      if (cached) {
+        try { return parseAllergenSheet(parseCsv(cached)); } catch { /* weiter */ }
+      }
+      throw err;
+    }
   }
 
   // Lädt frisch; fällt bei Fehlern auf den zuletzt gespeicherten Stand zurück.
@@ -291,7 +347,8 @@
   function renderAllergens(list) {
     const sup = el("sup", "allergens");
     sup.append(el("span", "sr-only", "Allergene: "), document.createTextNode(list.join(",")));
-    sup.title = list.map((k) => (ALLERGENS[k] ? ALLERGENS[k][0] : k)).join(", ");
+    const defs = state.allergens;
+    sup.title = list.map((k) => (defs && defs.has(k) && defs.get(k).de ? defs.get(k).de : k)).join(", ");
     return sup;
   }
 
@@ -335,7 +392,7 @@
       meta.append(pill);
     }
     const text = el("div", "dish-text");
-    appendBilingual(text, dish, dish.allergens);
+    appendBilingual(text, dish, resolveAllergens(dish.allergens, state.allergens));
     item.append(meta, text);
     if (priceCols) item.append(...renderPrices(dish));
     return item;
@@ -386,7 +443,11 @@
     prev: $("prev"), next: $("next"), today: $("today"),
   };
 
-  const state = { menu: new Map(), monday: null, homeMonday: null };
+  // allergens: Map Kürzel -> { de, en }, oder null, solange (oder falls) die Allergen-Tabelle nicht verfügbar ist
+  const state = {
+    menu: new Map(), monday: null, homeMonday: null,
+    allergens: CONFIG.allergensUrl ? null : DEFAULT_ALLERGENS,
+  };
 
   // Am Wochenende zeigen wir direkt die kommende Woche.
   function defaultMonday() {
@@ -415,23 +476,35 @@
     ui.days.replaceChildren(
       ...entries.map(({ date, entry }, i) => renderDay(date, i, entry, toKey(date) === todayKey)),
     );
-    // Legende nur für die Allergene, die in dieser Woche vorkommen
+    // Legende nur für die Allergene, die in dieser Woche vorkommen (in der Reihenfolge der Allergen-Tabelle)
+    const defs = state.allergens;
     const used = new Set();
     for (const { entry } of entries) {
       if (!entry || entry.note.de) continue;
-      for (const dish of entry.dishes) dish.allergens.forEach((k) => ALLERGENS[k] && used.add(k));
+      for (const dish of entry.dishes) resolveAllergens(dish.allergens, defs).forEach((k) => used.add(k));
     }
-    renderLegend([...used].sort());
+    if (!defs) renderLegend([], used.size > 0);
+    else renderLegend([...defs.keys()].filter((k) => used.has(k)), false);
   }
 
-  function renderLegend(keys) {
-    ui.legend.hidden = keys.length === 0;
+  // keys: Kürzel mit Erklärung; unavailable: Allergene kommen vor, aber die Tabelle ließ sich nicht laden
+  function renderLegend(keys, unavailable) {
+    const defs = state.allergens;
+    ui.legend.hidden = keys.length === 0 && !unavailable;
+    if (unavailable) {
+      ui.legendList.replaceChildren(el("li", "legend-item", "Die Erklärung der Kürzel ist gerade nicht verfügbar. Bitte im Zweifel nachfragen."));
+      return;
+    }
     ui.legendList.replaceChildren(
       ...keys.map((k) => {
+        const { de, en } = defs.get(k);
         const item = el("li", "legend-item");
-        const en = el("span", "en", ALLERGENS[k][1]);
-        en.lang = "en";
-        item.append(el("b", "legend-key", k), document.createTextNode(ALLERGENS[k][0] + " "), en);
+        item.append(el("b", "legend-key", k), document.createTextNode(de));
+        if (en) {
+          const enEl = el("span", "en", en);
+          enEl.lang = "en";
+          item.append(document.createTextNode(" "), enEl);
+        }
         return item;
       }),
     );
@@ -468,6 +541,11 @@
     });
 
     render();
+    // Die Legende lädt parallel; fällt sie aus, zeigt die Seite die Kürzel ohne Erklärung und weist darauf hin.
+    const allergens = loadAllergens().catch((err) => {
+      console.error("Allergen-Legende konnte nicht geladen werden:", err);
+      return null;
+    });
     try {
       const { menu, stale } = await loadMenu();
       state.menu = menu;
@@ -480,6 +558,7 @@
       ui.status.textContent = "Der Menüplan konnte gerade nicht geladen werden. Bitte später erneut versuchen.";
       ui.status.classList.add("is-warn");
     }
+    state.allergens = await allergens;
     render();
   }
 
