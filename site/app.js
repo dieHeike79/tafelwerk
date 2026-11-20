@@ -11,7 +11,7 @@
     csvUrl: "https://docs.google.com/spreadsheets/d/e/2PACX-1vT_fCihwVSW7KWjxZt0G5pkmDRnV_x2Dd81sZe8UQqz-l8rmkNrz3CP9XlqOt8wZiuS4XSw8979wiEg/pub?gid=150620554&single=true&output=csv",
     // Legende der Allergene (Tabellenblatt "Allergene": Allergen | Name de | Name en), ebenfalls als CSV veröffentlicht.
     // Leer lassen = eingebaute Standardliste a–n (siehe DEFAULT_ALLERGENS).
-    allergensUrl: "",
+    allergensUrl: "https://docs.google.com/spreadsheets/d/e/2PACX-1vT_fCihwVSW7KWjxZt0G5pkmDRnV_x2Dd81sZe8UQqz-l8rmkNrz3CP9XlqOt8wZiuS4XSw8979wiEg/pub?gid=1917520558&single=true&output=csv",
   };
 
   const CACHE_KEY = "cafeteria-menu-csv-v1";
