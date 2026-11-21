@@ -12,7 +12,8 @@
     // Legende der Allergene (Tabellenblatt "Allergene": Allergen | Name de | Name en), ebenfalls als CSV veröffentlicht.
     // Leer lassen = eingebaute Standardliste a–n (siehe DEFAULT_ALLERGENS).
     allergensUrl: "https://docs.google.com/spreadsheets/d/e/2PACX-1vT_fCihwVSW7KWjxZt0G5pkmDRnV_x2Dd81sZe8UQqz-l8rmkNrz3CP9XlqOt8wZiuS4XSw8979wiEg/pub?gid=1917520558&single=true&output=csv",
-    // Feste Zeilen am Ende des Tagesdrucks (A4), z. B. Salat und Dessert. Preise wie "1,90"; leer = ohne Preis.
+    // Feste Zeilen am Ende der Tagesansicht/des Tagesdrucks, z. B. Salat und Dessert.
+    // extern = großer Preis, intern = klein darunter. Preise wie "1,90"; leer = ohne Preis.
     // Gilt der Preis je Menge, das in den Namen schreiben, z. B. "Salat vom Büfett (je 100 g)".
     printExtras: [
       { de: "Salat vom Büfett", en: "Salad from the buffet", intern: "", extern: "" },
@@ -276,9 +277,9 @@
   // Position: Suppe, Gericht 1, Gericht 2, … oder Hinweis (Gericht/Englisch enthalten dann den Hinweistext).
   // Allergene, Kennzeichnung und Preise sind optional.
   // Ergebnis: Map "yyyy-mm-dd" -> { dishes: [{label, de, en, allergens, tags, small, large}], note: {de, en} }
-  // Preisspalte finden: beginnt mit "Preis", "Klein" oder "Groß", enthält die Größe und (nicht) das Wort "extern".
-  function priceCol(header, sizeRe, external) {
-    return header.findIndex((h) => /^(preis|klein|gro)/.test(h) && sizeRe.test(h) && /extern/.test(h) === external);
+  // Preisspalte finden: beginnt mit "Preis", "Klein" oder "Groß", enthält die Größe und (nicht) das Wort "intern".
+  function priceCol(header, sizeRe, internal) {
+    return header.findIndex((h) => /^(preis|klein|gro)/.test(h) && sizeRe.test(h) && /intern/.test(h) === internal);
   }
 
   function parseMenu(rows) {
@@ -293,12 +294,12 @@
       en: col(/^engl/),
       allergens: col(/^allergen/),
       tags: col(/^kennzeichnung/),
-      // "Preis klein" / "Preis groß" = interne Preise (Webseite und Druck);
-      // "Preis klein extern" / "Preis groß extern" = externe Preise (nur im Tagesdruck).
+      // "Preis klein" / "Preis groß" = externe (normale) Preise: Wochenansicht, Tagesansicht groß;
+      // "Preis klein intern" / "Preis groß intern" = interne Preise: nur Tagesansicht/-druck, klein darunter.
       small: priceCol(header, /klein/, false),
       large: priceCol(header, /gro(ß|ss)/, false),
-      smallExt: priceCol(header, /klein/, true),
-      largeExt: priceCol(header, /gro(ß|ss)/, true),
+      smallInt: priceCol(header, /klein/, true),
+      largeInt: priceCol(header, /gro(ß|ss)/, true),
     };
     // Ohne Freigabe-Spalte wird bewusst nichts angezeigt (lieber leer als versehentlich veröffentlicht).
     if (cols.date < 0 || cols.released < 0 || cols.position < 0 || cols.de < 0) {
@@ -332,8 +333,8 @@
           tags: parseTags(cell(row, cols.tags)),
           small: formatPrice(cell(row, cols.small)),
           large: formatPrice(cell(row, cols.large)),
-          smallExt: formatPrice(cell(row, cols.smallExt)),
-          largeExt: formatPrice(cell(row, cols.largeExt)),
+          smallInt: formatPrice(cell(row, cols.smallInt)),
+          largeInt: formatPrice(cell(row, cols.largeInt)),
         });
       }
     }
@@ -523,11 +524,11 @@
   }
 
   // ---------------------------------------------------------------
-  // Tagesdruck (A4): alle Gerichte mit internen und externen Preisen, dazu Salat und Dessert
+  // Tagesansicht/-druck (A4): alle Gerichte mit externen und internen Preisen, dazu Salat und Dessert
   // ---------------------------------------------------------------
 
-  // Ein Preis in der Tagesansicht: groß der externe Preis, klein darunter der interne, darunter "Klein"/"Groß".
-  // Fehlt der externe Preis, steht der interne groß (dann sieht es aus wie in der Wochenansicht).
+  // Ein Preis in der Tagesansicht: groß der externe Preis (wie in der Wochenansicht), klein darunter der interne,
+  // darunter "Klein"/"Groß". Fehlt der externe Preis, steht der interne groß.
   function dayPrice(ext, int, label, cls) {
     const cell = el("span", `price ${cls}`);
     cell.append(el("span", "price-value", ext || int));
@@ -537,25 +538,25 @@
   }
 
   function renderDayPrices(d) {
-    const hasSmall = d.small || d.smallExt;
-    const hasLarge = d.large || d.largeExt;
+    const hasSmall = d.small || d.smallInt;
+    const hasLarge = d.large || d.largeInt;
     if (hasSmall && hasLarge) {
-      return [dayPrice(d.smallExt, d.small, "Klein", "is-small"), dayPrice(d.largeExt, d.large, "Groß", "is-large")];
+      return [dayPrice(d.small, d.smallInt, "Klein", "is-small"), dayPrice(d.large, d.largeInt, "Groß", "is-large")];
     }
-    if (hasSmall || hasLarge) return [dayPrice(d.smallExt || d.largeExt, d.small || d.large, "", "is-single")];
+    if (hasSmall || hasLarge) return [dayPrice(d.small || d.large, d.smallInt || d.largeInt, "", "is-single")];
     return [];
   }
 
   // Tagesansicht/Tagesdruck: Gerichte wie in der Wochenkarte, danach Salat und Dessert (feste Zeilen aus CONFIG).
   function renderDayPrint(date, index, entry) {
     const extras = (CONFIG.printExtras || []).map((x) => ({
-      de: x.de, en: x.en, small: "", large: formatPrice(String(x.intern || "")),
-      smallExt: "", largeExt: formatPrice(String(x.extern || "")),
+      de: x.de, en: x.en, small: "", large: formatPrice(String(x.extern || "")),
+      smallInt: "", largeInt: formatPrice(String(x.intern || "")),
     }));
     const all = [...entry.dishes, ...extras];
     const list = el("ul", "dishes");
-    list.dataset.prices = all.some((d) => (d.small || d.smallExt) && (d.large || d.largeExt)) ? "2"
-      : all.some((d) => d.small || d.large || d.smallExt || d.largeExt) ? "1" : "0";
+    list.dataset.prices = all.some((d) => (d.small || d.smallInt) && (d.large || d.largeInt)) ? "2"
+      : all.some((d) => d.small || d.large || d.smallInt || d.largeInt) ? "1" : "0";
 
     for (const dish of entry.dishes) {
       const item = el("li", "dish");
