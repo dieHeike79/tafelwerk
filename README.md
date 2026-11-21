@@ -47,7 +47,7 @@ Am einfachsten die 20 Zeilen der Vorwoche kopieren und Datum und Gerichte änder
 | *Allergene* | Kürzel aus dem Tabellenblatt *Allergene*, durch Komma getrennt: Buchstaben für Allergene, Zahlen für Zusatzstoffe, z. B. `a1,g,1,3`. Sie stehen klein und hochgestellt am Namen (erst Allergene, dann Zusatzstoffe). Die Spalte *Allergene* gilt für das ganze Gericht und wird hinter den Namen gesetzt; Kürzel, die schon in eckigen Klammern am Bestandteil stehen, werden dort nicht wiederholt, alles Übrige aus der Spalte bleibt sichtbar. Beides lässt sich mischen. Unter dem Plan erscheinen automatisch zwei Legenden, *Allergene* und *Zusatzstoffe*, jeweils nur für die Kürzel der Woche. Ein Kürzel, das im Tabellenblatt fehlt (oder ein Wort wie `Gluten`), wird unverändert angezeigt, damit nie etwas verschwindet. |
 | *Kennzeichnung* | `vegan`, `vegetarisch`, `glutenfrei`, mehrere mit Komma oder Schrägstrich (`vegan, glutenfrei`). Erscheint als Pille hinter „Suppe" / „Gericht 1": vegan kräftig grün, vegetarisch hell grün, glutenfrei braun. Was eingetragen ist, wird angezeigt (`vegan / vegetarisch` zeigt beide). |
 | *Preis klein* / *Preis groß* | z. B. `5,50`, `5.5` oder `5,50 €`; die Seite zeigt immer `5,50 €`. Sind beide gefüllt, steht darunter „Klein" bzw. „Groß". Gibt es nur eine Portion, nur eine der Zellen füllen: Der Preis steht dann ohne Beschriftung rechts. Das sind die **internen** Preise; nur sie stehen auf der Webseite. |
-| *Preis klein extern* / *Preis groß extern* | Preise für externe Gäste, gleiche Schreibweise. Erscheinen **nur im Tagesdruck** (siehe unten), nicht auf der Webseite. Dürfen leer bleiben. Die Spalten dürfen irgendwo stehen; wichtig ist nur, dass „extern" im Spaltennamen vorkommt. |
+| *Preis klein extern* / *Preis groß extern* | Preise für externe Gäste, gleiche Schreibweise. Erscheinen **nur in der Tagesansicht und im Tagesdruck** (siehe unten), nicht in der Wochenansicht. Dürfen leer bleiben. Die Spalten dürfen irgendwo stehen; wichtig ist nur, dass „extern" im Spaltennamen vorkommt. |
 
 **Allergen-Kürzel pflegt der Chef selbst** in einem zweiten Tabellenblatt namens *Allergene* im selben Google Sheet:
 
@@ -63,7 +63,9 @@ Am einfachsten die 20 Zeilen der Vorwoche kopieren und Datum und Gerichte änder
 - Ist die Tabelle konfiguriert, aber nicht erreichbar (und im Browser nichts gespeichert), zeigt die Seite die Kürzel mit dem Hinweis,
   dass die Erklärung gerade fehlt. Eine Ersatzliste gibt es bewusst nicht, damit nie ein Kürzel falsch erklärt wird.
 
-**Tagesdruck (A4-Aushang für einen Tag):** Jede Tageskarte hat den Knopf *Tag drucken*. Das Blatt zeigt alle Gerichte des Tages
+**Tagesansicht und Tagesdruck (A4-Aushang für einen Tag):** In der Wochenansicht ist das **Datum** eines Tages ein Link.
+Er öffnet die Tagesansicht (Adresse `…/#tag/2026-11-23`, lässt sich auch direkt verlinken). Dort steht oben *Tag drucken*.
+Am Bildschirm sieht die Tagesansicht genauso aus wie der Ausdruck. Das Blatt zeigt alle Gerichte des Tages
 mit internen und externen Preisen (bei zwei Portionsgrößen jeweils Klein und Groß), darunter die festen Zeilen *Salat vom Büfett*
 und *Dessert* und die Allergen-Legende nur für diesen Tag. Im Druckdialog „Als PDF sichern" wählen, um ein PDF zu bekommen.
 Text und Preise von Salat und Dessert sind **fest** und stehen in `site/app.js` bei `CONFIG.printExtras`

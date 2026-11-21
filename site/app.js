@@ -23,6 +23,7 @@
   const CACHE_KEY = "cafeteria-menu-csv-v1";
   const ALLERGEN_CACHE_KEY = "cafeteria-allergens-csv-v1";
   const DAY_NAMES = ["Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag"];
+  const WEEKDAYS = [...DAY_NAMES, "Samstag", "Sonntag"];
   const MONTHS = [
     "Januar", "Februar", "März", "April", "Mai", "Juni",
     "Juli", "August", "September", "Oktober", "November", "Dezember",
@@ -487,18 +488,18 @@
     if (closed) card.classList.add("is-closed");
 
     const head = el("header", "day-head");
-    head.append(
-      el("h3", "day-name", DAY_NAMES[index]),
-      el("span", "day-date", `${date.getUTCDate()}. ${MONTHS[date.getUTCMonth()]}`),
-    );
-    if (isToday) head.append(el("span", "badge", "Heute"));
+    // Hat der Tag Gerichte, ist das Datum ein Link zur Tagesansicht (dort auch drucken).
+    const dateText = `${date.getUTCDate()}. ${MONTHS[date.getUTCMonth()]}`;
+    let dateEl;
     if (!closed && entry && entry.dishes.length) {
-      const btn = el("button", "linkbtn daybtn", "Tag drucken");
-      btn.type = "button";
-      btn.setAttribute("aria-label", `${DAY_NAMES[index]}, ${date.getUTCDate()}. ${MONTHS[date.getUTCMonth()]} drucken`);
-      btn.addEventListener("click", () => printDay(date, index, entry));
-      head.append(btn);
+      dateEl = el("a", "day-date is-link", dateText);
+      dateEl.href = `#tag/${toKey(date)}`;
+      dateEl.title = "Tagesansicht öffnen und drucken";
+    } else {
+      dateEl = el("span", "day-date", dateText);
     }
+    head.append(el("h3", "day-name", DAY_NAMES[index]), dateEl);
+    if (isToday) head.append(el("span", "badge", "Heute"));
 
     const body = el("div", "day-body");
     if (closed) {
@@ -588,38 +589,51 @@
     const box = el("div", "dp");
     const head = el("div", "dp-head");
     head.append(
-      el("h2", "dp-day", DAY_NAMES[index]),
-      el("p", "dp-date", `${date.getUTCDate()}. ${MONTHS[date.getUTCMonth()]} ${date.getUTCFullYear()}`),
+      el("h2", "dp-day", WEEKDAYS[index]),
+      el("p", "dp-date", formatLongDate(date)),
     );
     box.append(head, table);
     return box;
   }
 
-  function printDay(date, index, entry) {
-    ui.dayPrint.replaceChildren(renderDayPrint(date, index, entry));
+  // Tagesansicht (#tag/2026-11-23): am Bildschirm genau das, was gedruckt wird.
+  function renderDayView(date) {
+    const index = (date.getUTCDay() + 6) % 7;
+    const entry = state.menu.get(toKey(date));
+    const monday = mondayOf(date);
     ui.printTitle.textContent = "Tagesmenü"; // Tag und Datum stehen groß darunter
-    // Legende nur für die Kürzel dieses Tages
-    const defs = state.allergens;
-    const used = new Set();
-    for (const dish of entry.dishes) {
-      const tokens = [...dish.allergens, ...inlineCodes(dish.deParts), ...inlineCodes(dish.enParts)];
-      resolveAllergens(tokens, defs).forEach((k) => used.add(k));
-    }
-    if (!defs) renderLegend([], used.size > 0);
-    else renderLegend([...defs.keys()].filter((k) => used.has(k)), false);
+    ui.backWeek.href = toKey(monday) === toKey(state.homeMonday) ? location.pathname + location.search : `#${toKey(monday)}`;
+    ui.backWeek.textContent = `← Zurück zur Woche (KW ${isoWeek(date)})`;
+    document.title = `Tagesmenü ${WEEKDAYS[index]}, ${formatDate(date)} – ${CONFIG.title}`;
 
-    const pageTitle = document.title;
-    document.title = `Tagesmenü ${toKey(date)}`; // Vorschlag für den PDF-Dateinamen
-    document.body.classList.add("print-day");
-    const restore = () => {
-      document.body.classList.remove("print-day");
-      document.title = pageTitle;
-      ui.dayPrint.replaceChildren();
-      render();
-    };
-    window.addEventListener("afterprint", restore, { once: true });
-    window.print();
+    if (entry && entry.dishes.length && !entry.note.de) {
+      ui.dayPrint.replaceChildren(renderDayPrint(date, index, entry));
+      ui.printDay.hidden = false;
+      // Legende nur für die Kürzel dieses Tages
+      const defs = state.allergens;
+      const used = new Set();
+      for (const dish of entry.dishes) {
+        const tokens = [...dish.allergens, ...inlineCodes(dish.deParts), ...inlineCodes(dish.enParts)];
+        resolveAllergens(tokens, defs).forEach((k) => used.add(k));
+      }
+      if (!defs) renderLegend([], used.size > 0);
+      else renderLegend([...defs.keys()].filter((k) => used.has(k)), false);
+    } else {
+      // Geschlossen, Wochenende oder noch nicht geplant
+      const box = el("div", "dp");
+      const head = el("div", "dp-head");
+      head.append(el("h2", "dp-day", WEEKDAYS[index]), el("p", "dp-date", formatLongDate(date)));
+      const msg = el("p", "pending");
+      if (entry && entry.note.de) appendBilingual(msg, entry.note);
+      else msg.textContent = index > 4 ? "Am Wochenende geschlossen." : "Für diesen Tag ist noch nichts geplant.";
+      box.append(head, msg);
+      ui.dayPrint.replaceChildren(box);
+      ui.printDay.hidden = true;
+      renderLegend([]);
+    }
   }
+
+  const formatLongDate = (d) => `${d.getUTCDate()}. ${MONTHS[d.getUTCMonth()]} ${d.getUTCFullYear()}`;
 
   // ---------------------------------------------------------------
   // Anwendung
@@ -630,12 +644,13 @@
     days: $("days"), status: $("status"), legend: $("legend"), legendList: $("legend-list"),
     legendAdd: $("legend-additives"), legendAddList: $("legend-additives-list"),
     prev: $("prev"), next: $("next"), today: $("today"), print: $("print"), printTitle: $("printtitle"),
-    dayPrint: $("dayprint"),
+    dayPrint: $("dayprint"), weekNav: $("weeknav"), dayNav: $("daynav"),
+    backWeek: $("backweek"), printDay: $("printday"),
   };
 
   // allergens: Map Kürzel -> { de, en }, oder null, solange (oder falls) die Allergen-Tabelle nicht verfügbar ist
   const state = {
-    menu: new Map(), monday: null, homeMonday: null,
+    menu: new Map(), monday: null, homeMonday: null, day: null,
     allergens: CONFIG.allergensUrl ? null : DEFAULT_ALLERGENS,
   };
 
@@ -647,6 +662,14 @@
   }
 
   function render() {
+    const dayView = !!state.day;
+    document.body.classList.toggle("day-view", dayView);
+    ui.weekNav.hidden = dayView;
+    ui.dayNav.hidden = !dayView;
+    if (dayView) { renderDayView(state.day); return; }
+    ui.dayPrint.replaceChildren();
+    document.title = `${CONFIG.title} – Speiseplan`;
+
     const monday = state.monday;
     ui.weekTitle.textContent = `KW ${isoWeek(monday)}`;
     ui.weekRange.textContent = formatRange(monday);
@@ -712,6 +735,7 @@
   }
 
   function go(monday) {
+    state.day = null;
     state.monday = monday;
     const key = toKey(monday);
     try {
@@ -721,9 +745,15 @@
     render();
   }
 
-  function mondayFromHash() {
-    const date = parseDate(location.hash.slice(1));
-    return date ? mondayOf(date) : null;
+  // #tag/yyyy-mm-dd = Tagesansicht, #yyyy-mm-dd = Woche, sonst aktuelle Woche
+  function readHash() {
+    const hash = decodeURIComponent(location.hash.slice(1));
+    if (hash.startsWith("tag/")) {
+      const day = parseDate(hash.slice(4));
+      if (day) return { day, monday: mondayOf(day) };
+    }
+    const date = parseDate(hash);
+    return { day: null, monday: date ? mondayOf(date) : state.homeMonday };
   }
 
   async function init() {
@@ -731,15 +761,18 @@
     document.title = `${CONFIG.title} – Speiseplan`;
 
     state.homeMonday = defaultMonday();
-    state.monday = mondayFromHash() || state.homeMonday;
+    Object.assign(state, readHash());
 
     ui.prev.addEventListener("click", () => go(addDays(state.monday, -7)));
     ui.next.addEventListener("click", () => go(addDays(state.monday, 7)));
     ui.today.addEventListener("click", () => go(state.homeMonday));
     ui.print.addEventListener("click", () => window.print());
+    ui.printDay.addEventListener("click", () => window.print());
     window.addEventListener("hashchange", () => {
-      state.monday = mondayFromHash() || state.homeMonday;
+      const wasDay = !!state.day;
+      Object.assign(state, readHash());
       render();
+      if (!!state.day !== wasDay) window.scrollTo(0, 0);
     });
 
     render();
