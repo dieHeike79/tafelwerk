@@ -12,7 +12,8 @@
     // Legende der Allergene (Tabellenblatt "Allergene": Allergen | Name de | Name en), ebenfalls als CSV veröffentlicht.
     // Leer lassen = eingebaute Standardliste a–n (siehe DEFAULT_ALLERGENS).
     allergensUrl: "https://docs.google.com/spreadsheets/d/e/2PACX-1vT_fCihwVSW7KWjxZt0G5pkmDRnV_x2Dd81sZe8UQqz-l8rmkNrz3CP9XlqOt8wZiuS4XSw8979wiEg/pub?gid=1917520558&single=true&output=csv",
-    // Feste Zeilen am Ende des Tagesdrucks (A4), z. B. Salat und Dessert. Preise wie "1,90"; leer = ohne Preis.
+    // Feste Zeilen am Ende der Tagesansicht/des Tagesdrucks, z. B. Salat und Dessert.
+    // extern = großer Preis, intern = klein darunter. Preise wie "1,90"; leer = ohne Preis.
     // Gilt der Preis je Menge, das in den Namen schreiben, z. B. "Salat vom Büfett (je 100 g)".
     printExtras: [
       { de: "Salat vom Büfett", en: "Salad from the buffet", intern: "", extern: "" },
@@ -276,9 +277,9 @@
   // Position: Suppe, Gericht 1, Gericht 2, … oder Hinweis (Gericht/Englisch enthalten dann den Hinweistext).
   // Allergene, Kennzeichnung und Preise sind optional.
   // Ergebnis: Map "yyyy-mm-dd" -> { dishes: [{label, de, en, allergens, tags, small, large}], note: {de, en} }
-  // Preisspalte finden: beginnt mit "Preis", "Klein" oder "Groß", enthält die Größe und (nicht) das Wort "extern".
-  function priceCol(header, sizeRe, external) {
-    return header.findIndex((h) => /^(preis|klein|gro)/.test(h) && sizeRe.test(h) && /extern/.test(h) === external);
+  // Preisspalte finden: beginnt mit "Preis", "Klein" oder "Groß", enthält die Größe und (nicht) das Wort "intern".
+  function priceCol(header, sizeRe, internal) {
+    return header.findIndex((h) => /^(preis|klein|gro)/.test(h) && sizeRe.test(h) && /intern/.test(h) === internal);
   }
 
   function parseMenu(rows) {
@@ -293,12 +294,12 @@
       en: col(/^engl/),
       allergens: col(/^allergen/),
       tags: col(/^kennzeichnung/),
-      // "Preis klein" / "Preis groß" = interne Preise (Webseite und Druck);
-      // "Preis klein extern" / "Preis groß extern" = externe Preise (nur im Tagesdruck).
+      // "Preis klein" / "Preis groß" = externe (normale) Preise: Wochenansicht, Tagesansicht groß;
+      // "Preis klein intern" / "Preis groß intern" = interne Preise: nur Tagesansicht/-druck, klein darunter.
       small: priceCol(header, /klein/, false),
       large: priceCol(header, /gro(ß|ss)/, false),
-      smallExt: priceCol(header, /klein/, true),
-      largeExt: priceCol(header, /gro(ß|ss)/, true),
+      smallInt: priceCol(header, /klein/, true),
+      largeInt: priceCol(header, /gro(ß|ss)/, true),
     };
     // Ohne Freigabe-Spalte wird bewusst nichts angezeigt (lieber leer als versehentlich veröffentlicht).
     if (cols.date < 0 || cols.released < 0 || cols.position < 0 || cols.de < 0) {
@@ -332,8 +333,8 @@
           tags: parseTags(cell(row, cols.tags)),
           small: formatPrice(cell(row, cols.small)),
           large: formatPrice(cell(row, cols.large)),
-          smallExt: formatPrice(cell(row, cols.smallExt)),
-          largeExt: formatPrice(cell(row, cols.largeExt)),
+          smallInt: formatPrice(cell(row, cols.smallInt)),
+          largeInt: formatPrice(cell(row, cols.largeInt)),
         });
       }
     }
@@ -523,76 +524,60 @@
   }
 
   // ---------------------------------------------------------------
-  // Tagesdruck (A4): alle Gerichte mit internen und externen Preisen, dazu Salat und Dessert
+  // Tagesansicht/-druck (A4): alle Gerichte mit externen und internen Preisen, dazu Salat und Dessert
   // ---------------------------------------------------------------
 
-  // Preise einer Gruppe (intern oder extern) auf die Spalten verteilen.
-  // sizes = 2: [klein, groß]; ein einzelner Preis steht in der Spalte "Groß" (wie auf der Webseite). sizes = 1: [preis].
-  function priceCells(small, large, sizes) {
-    if (sizes === 2) return small && large ? [small, large] : ["", small || large];
-    return [small || large];
+  // Ein Preis in der Tagesansicht: groß der externe Preis (wie in der Wochenansicht), klein darunter der interne,
+  // darunter "Klein"/"Groß". Fehlt der externe Preis, steht der interne groß.
+  function dayPrice(ext, int, label, cls) {
+    const cell = el("span", `price ${cls}`);
+    cell.append(el("span", "price-value", ext || int));
+    if (ext && int) cell.append(el("span", "price-intern", `intern ${int}`));
+    if (label) cell.append(el("span", "price-label", label));
+    return cell;
   }
 
-  function renderDayPrint(date, index, entry) {
-    const sizes = entry.dishes.some((d) => (d.small && d.large) || (d.smallExt && d.largeExt)) ? 2 : 1;
-    const table = el("table", "dp-table");
-    table.dataset.sizes = String(sizes);
-
-    // Kopf: Intern | Extern, bei zwei Größen darunter Klein | Groß
-    const thead = el("thead");
-    const row1 = el("tr");
-    const th = (text, en, cls, span) => {
-      const cell = el("th", cls);
-      cell.append(document.createTextNode(text));
-      if (en) { const e = el("span", "en", en); e.lang = "en"; cell.append(e); }
-      if (span > 1) cell.colSpan = span;
-      return cell;
-    };
-    const corner = th("", "", "dp-corner");
-    if (sizes === 2) corner.rowSpan = 2;
-    row1.append(corner, th("Intern", "Internal", "dp-group", sizes), th("Extern", "External", "dp-group is-ext", sizes));
-    thead.append(row1);
-    if (sizes === 2) {
-      const row2 = el("tr");
-      row2.append(th("Klein", "Small", "dp-size"), th("Groß", "Large", "dp-size"),
-        th("Klein", "Small", "dp-size is-ext"), th("Groß", "Large", "dp-size"));
-      thead.append(row2);
+  function renderDayPrices(d) {
+    const hasSmall = d.small || d.smallInt;
+    const hasLarge = d.large || d.largeInt;
+    if (hasSmall && hasLarge) {
+      return [dayPrice(d.small, d.smallInt, "Klein", "is-small"), dayPrice(d.large, d.largeInt, "Groß", "is-large")];
     }
+    if (hasSmall || hasLarge) return [dayPrice(d.small || d.large, d.smallInt || d.largeInt, "", "is-single")];
+    return [];
+  }
 
-    const tbody = el("tbody");
-    const addRow = (first, intern, extern, cls) => {
-      const tr = el("tr", cls);
-      const td = el("td", "dp-dish");
-      td.append(...first);
-      tr.append(td);
-      intern.forEach((p, i) => tr.append(el("td", i === 0 ? "dp-price is-first" : "dp-price", p)));
-      extern.forEach((p, i) => tr.append(el("td", i === 0 ? "dp-price is-ext" : "dp-price", p)));
-      tbody.append(tr);
-    };
+  // Tagesansicht/Tagesdruck: Gerichte wie in der Wochenkarte, danach Salat und Dessert (feste Zeilen aus CONFIG).
+  function renderDayPrint(date, index, entry) {
+    const extras = (CONFIG.printExtras || []).map((x) => ({
+      de: x.de, en: x.en, small: "", large: formatPrice(String(x.extern || "")),
+      smallInt: "", largeInt: formatPrice(String(x.intern || "")),
+    }));
+    const all = [...entry.dishes, ...extras];
+    const list = el("ul", "dishes");
+    list.dataset.prices = all.some((d) => (d.small || d.smallInt) && (d.large || d.largeInt)) ? "2"
+      : all.some((d) => d.small || d.large || d.smallInt || d.largeInt) ? "1" : "0";
 
     for (const dish of entry.dishes) {
+      const item = el("li", "dish");
       const meta = el("div", "dish-meta");
       meta.append(el("span", "dish-pos", dish.label));
       renderTags(dish, meta);
-      addRow([meta, renderDishText(dish)],
-        priceCells(dish.small, dish.large, sizes), priceCells(dish.smallExt, dish.largeExt, sizes), "dp-row");
+      item.append(meta, renderDishText(dish), ...renderDayPrices(dish));
+      list.append(item);
     }
-    // Feste Zeilen (Salat, Dessert): ein Preis je Gruppe, in der Spalte "Groß" bzw. der einzigen Spalte
-    for (const extra of CONFIG.printExtras || []) {
+    extras.forEach((extra, i) => {
+      const item = el("li", i === 0 ? "dish is-extra is-extra-first" : "dish is-extra");
       const text = el("div", "dish-text");
-      appendBilingual(text, { de: extra.de, en: extra.en });
-      const p = (v) => priceCells("", formatPrice(String(v || "")), sizes);
-      addRow([text], p(extra.intern), p(extra.extern), "dp-row is-extra");
-    }
-    table.append(thead, tbody);
+      appendBilingual(text, extra);
+      item.append(text, ...renderDayPrices(extra));
+      list.append(item);
+    });
 
     const box = el("div", "dp");
     const head = el("div", "dp-head");
-    head.append(
-      el("h2", "dp-day", WEEKDAYS[index]),
-      el("p", "dp-date", formatLongDate(date)),
-    );
-    box.append(head, table);
+    head.append(el("h2", "dp-day", WEEKDAYS[index]), el("p", "dp-date", formatLongDate(date)));
+    box.append(head, list);
     return box;
   }
 
