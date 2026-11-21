@@ -1,0 +1,4 @@
+# Interne Vorlagen und Exporte gehören nicht in das öffentliche Repo
+Speiseplan*.doc
+Speiseplan*.docx
+*.pdf

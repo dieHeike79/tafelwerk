@@ -70,6 +70,8 @@
     return 1 + Math.ceil((firstThursday - target.getTime()) / (7 * DAY_MS));
   }
 
+  const formatDate = (d) => `${pad(d.getUTCDate())}.${pad(d.getUTCMonth() + 1)}.${d.getUTCFullYear()}`;
+
   function formatRange(monday) {
     const friday = addDays(monday, 4);
     const [d1, m1, y1] = [monday.getUTCDate(), monday.getUTCMonth(), monday.getUTCFullYear()];
@@ -204,7 +206,11 @@
     return tokens;
   }
 
-  // Passt die Angaben zur Allergen-Tabelle: "ag" -> a, g (wenn es kein Kürzel "ag" gibt), Reihenfolge wie in der Tabelle.
+  // Rein numerische Kürzel (1, 2, 3 …) sind Zusatzstoffe, alles andere (a, g, a1 …) Allergene.
+  const isAdditive = (code) => /^\d+$/.test(code);
+
+  // Passt die Angaben zur Allergen-Tabelle: "ag" -> a, g (wenn es kein Kürzel "ag" gibt).
+  // Reihenfolge: erst Allergene, dann Zusatzstoffe, jeweils wie in der Tabelle.
   // Unbekannte Angaben bleiben sichtbar (lieber zu viel als ein Allergen verschweigen) und stehen am Ende.
   function resolveAllergens(tokens, defs) {
     const out = [];
@@ -216,7 +222,11 @@
     }
     if (!defs) return out.sort();
     const order = [...defs.keys()];
-    const rank = (t) => { const i = order.indexOf(t); return i < 0 ? Infinity : i; };
+    const rank = (t) => {
+      const i = order.indexOf(t);
+      if (i < 0) return Infinity;
+      return (isAdditive(t) ? order.length : 0) + i;
+    };
     return out.sort((a, b) => (rank(a) - rank(b)) || (a < b ? -1 : a > b ? 1 : 0));
   }
 
@@ -346,7 +356,7 @@
   // Allergene als kleine, hochgestellte Buchstaben direkt hinter dem Namen: "Gulasch mit Nudeln ᵃ,ⁱ"
   function renderAllergens(list) {
     const sup = el("sup", "allergens");
-    sup.append(el("span", "sr-only", "Allergene: "), document.createTextNode(list.join(",")));
+    sup.append(el("span", "sr-only", "Allergene und Zusatzstoffe: "), document.createTextNode(list.join(",")));
     const defs = state.allergens;
     sup.title = list.map((k) => (defs && defs.has(k) && defs.get(k).de ? defs.get(k).de : k)).join(", ");
     return sup;
@@ -440,7 +450,8 @@
   const ui = {
     title: $("title"), weekTitle: $("weektitle"), weekRange: $("weekrange"),
     days: $("days"), status: $("status"), legend: $("legend"), legendList: $("legend-list"),
-    prev: $("prev"), next: $("next"), today: $("today"),
+    legendAdd: $("legend-additives"), legendAddList: $("legend-additives-list"),
+    prev: $("prev"), next: $("next"), today: $("today"), print: $("print"), printTitle: $("printtitle"),
   };
 
   // allergens: Map Kürzel -> { de, en }, oder null, solange (oder falls) die Allergen-Tabelle nicht verfügbar ist
@@ -460,6 +471,7 @@
     const monday = state.monday;
     ui.weekTitle.textContent = `KW ${isoWeek(monday)}`;
     ui.weekRange.textContent = formatRange(monday);
+    ui.printTitle.textContent = `Speiseplan vom ${formatDate(monday)} – ${formatDate(addDays(monday, 4))}`;
     ui.today.hidden = toKey(monday) === toKey(state.homeMonday);
 
     const todayKey = toKey(todayUtc());
@@ -487,27 +499,34 @@
     else renderLegend([...defs.keys()].filter((k) => used.has(k)), false);
   }
 
-  // keys: Kürzel mit Erklärung; unavailable: Allergene kommen vor, aber die Tabelle ließ sich nicht laden
+  // keys: Kürzel mit Erklärung; unavailable: es kommen Kürzel vor, aber die Tabelle ließ sich nicht laden.
+  // Zwei Blöcke: Allergene (Buchstaben) und Zusatzstoffe (Zahlen), jeweils nur wenn in der Woche benutzt.
   function renderLegend(keys, unavailable) {
     const defs = state.allergens;
-    ui.legend.hidden = keys.length === 0 && !unavailable;
+    const fill = (box, list, codes) => {
+      box.hidden = codes.length === 0;
+      list.replaceChildren(
+        ...codes.map((k) => {
+          const { de, en } = defs.get(k);
+          const item = el("li", "legend-item");
+          item.append(el("b", "legend-key", k), document.createTextNode(de));
+          if (en) {
+            const enEl = el("span", "en", en);
+            enEl.lang = "en";
+            item.append(document.createTextNode(" "), enEl);
+          }
+          return item;
+        }),
+      );
+    };
+    ui.legendAdd.hidden = true;
     if (unavailable) {
+      ui.legend.hidden = false;
       ui.legendList.replaceChildren(el("li", "legend-item", "Die Erklärung der Kürzel ist gerade nicht verfügbar. Bitte im Zweifel nachfragen."));
       return;
     }
-    ui.legendList.replaceChildren(
-      ...keys.map((k) => {
-        const { de, en } = defs.get(k);
-        const item = el("li", "legend-item");
-        item.append(el("b", "legend-key", k), document.createTextNode(de));
-        if (en) {
-          const enEl = el("span", "en", en);
-          enEl.lang = "en";
-          item.append(document.createTextNode(" "), enEl);
-        }
-        return item;
-      }),
-    );
+    fill(ui.legend, ui.legendList, keys.filter((k) => !isAdditive(k)));
+    fill(ui.legendAdd, ui.legendAddList, keys.filter(isAdditive));
   }
 
   function go(monday) {
@@ -535,6 +554,7 @@
     ui.prev.addEventListener("click", () => go(addDays(state.monday, -7)));
     ui.next.addEventListener("click", () => go(addDays(state.monday, 7)));
     ui.today.addEventListener("click", () => go(state.homeMonday));
+    ui.print.addEventListener("click", () => window.print());
     window.addEventListener("hashchange", () => {
       state.monday = mondayFromHash() || state.homeMonday;
       render();

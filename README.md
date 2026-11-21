@@ -42,7 +42,7 @@ Am einfachsten die 20 Zeilen der Vorwoche kopieren und Datum und Gerichte änder
 | *Freigegeben* | Haken setzen = erscheint auf der Seite. Ohne Haken bleibt die **Zeile** unsichtbar (Entwurf). Für eine ganze Woche die Zeilen markieren und einmal anhaken. Fehlt die Spalte ganz, zeigt die Seite bewusst nichts an. |
 | *Position* | `Suppe`, `Gericht 1`, `Gericht 2`, `Gericht 3` (mehr Gerichte: `Gericht 4` usw.) oder `Hinweis` (siehe unten). Die Reihenfolge der Zeilen ist egal. |
 | *Gericht* / *Englisch* | Deutscher Name und englische Übersetzung (erscheint kleiner und grau darunter, darf leer sein). |
-| *Allergene* | Kürzel aus dem Tabellenblatt *Allergene*, durch Komma getrennt, z. B. `a,g,i` oder `a1,c`. Sie stehen klein und hochgestellt am Namen. Unter dem Plan erscheint automatisch eine Legende für die Kürzel der Woche. Ein Kürzel, das im Tabellenblatt fehlt (oder ein Wort wie `Gluten`), wird unverändert angezeigt, damit nie ein Allergen verschwindet. |
+| *Allergene* | Kürzel aus dem Tabellenblatt *Allergene*, durch Komma getrennt: Buchstaben für Allergene, Zahlen für Zusatzstoffe, z. B. `a1,g,1,3`. Sie stehen klein und hochgestellt am Namen (erst Allergene, dann Zusatzstoffe). Unter dem Plan erscheinen automatisch zwei Legenden, *Allergene* und *Zusatzstoffe*, jeweils nur für die Kürzel der Woche. Ein Kürzel, das im Tabellenblatt fehlt (oder ein Wort wie `Gluten`), wird unverändert angezeigt, damit nie etwas verschwindet. |
 | *Kennzeichnung* | `vegan`, `vegetarisch`, `glutenfrei`, mehrere mit Komma oder Schrägstrich (`vegan, glutenfrei`). Erscheint als Pille hinter „Suppe" / „Gericht 1": vegan kräftig grün, vegetarisch hell grün, glutenfrei braun. Was eingetragen ist, wird angezeigt (`vegan / vegetarisch` zeigt beide). |
 | *Preis klein* / *Preis groß* | z. B. `5,50`, `5.5` oder `5,50 €`; die Seite zeigt immer `5,50 €`. Sind beide gefüllt, steht darunter „Klein" bzw. „Groß". Gibt es nur eine Portion, nur eine der Zellen füllen: Der Preis steht dann ohne Beschriftung rechts. |
 
@@ -51,6 +51,9 @@ Am einfachsten die 20 Zeilen der Vorwoche kopieren und Datum und Gerichte änder
 `Allergen | Name de | Name en`
 
 - Eine Zeile pro Kürzel, z. B. `a1 | Weizen | Wheat`. Die Reihenfolge der Zeilen ist die Reihenfolge in der Legende und an den Gerichten.
+- **Zusatzstoffe** stehen im selben Tabellenblatt, mit einer **Zahl** als Kürzel, z. B. `1 | mit Konservierungsstoff | with preservative`.
+  Rein numerische Kürzel zeigt die Seite automatisch in einer eigenen Legende „Zusatzstoffe", alle anderen unter „Allergene".
+  Welche Nummer wofür steht, legt der Betrieb fest; die Seite erfindet keine Zuordnung.
 - Einrichten: `allergene.sample.csv` (die 14 Pflichtallergene a–n als Startwert) in ein neues Tabellenblatt importieren und anpassen.
   Dann dieses Blatt wie das Menü *Im Web veröffentlichen* (CSV) und die URL in `site/app.js` bei `CONFIG.allergensUrl` eintragen.
 - Solange `allergensUrl` leer ist, gilt eine eingebaute Standardliste a–n.

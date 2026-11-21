@@ -13,6 +13,20 @@
   <script src="app.js" defer></script>
 </head>
 <body>
+  <!-- Layout-Tabelle: nur im Druck eine Tabelle. Ihr leerer Kopf/Fuß wird vom Browser auf jeder Seite wiederholt und ergibt so den Seitenrand. Am Bildschirm verhält sie sich wie normale Blöcke. -->
+  <table class="sheet" role="presentation">
+    <thead class="sheet-head" aria-hidden="true"><tr><td></td></tr></thead>
+    <tbody role="presentation"><tr role="presentation"><td role="presentation">
+  <!-- Nur im Druck: Kopf des Aushangs/PDFs -->
+  <div class="print-head" aria-hidden="true">
+    <img class="print-logo" src="minze.jpg" alt="" width="82" height="65">
+    <div>
+      <p class="print-name">Cafeteria im Max Planck Institut</p>
+      <p class="print-title" id="printtitle">Speiseplan</p>
+      <p class="print-lunch">Mittagstisch von 11:30 bis 14:00 Uhr</p>
+    </div>
+  </div>
+
   <header class="wrap top">
     <h1 class="brand" id="title">Cafeteria im Max Planck Institut</h1>
     <span class="tag">Speiseplan</span>
@@ -26,6 +40,10 @@
       </div>
       <div class="weekctl">
         <button type="button" class="linkbtn" id="today" hidden>Aktuelle Woche</button>
+        <button type="button" class="linkbtn printbtn" id="print">
+          <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M6 9V3h12v6M6 18H4a1 1 0 0 1-1-1v-6a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v6a1 1 0 0 1-1 1h-2M7 14h10v7H7z" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          Drucken
+        </button>
         <button type="button" class="navbtn" id="prev" aria-label="Vorherige Woche">
           <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M15 5l-7 7 7 7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
         </button>
@@ -46,6 +64,20 @@
       <ul id="legend-list" class="legend-list"></ul>
     </section>
 
+    <section id="legend-additives" class="legend" aria-labelledby="legend-additives-title" hidden>
+      <h2 id="legend-additives-title" class="legend-title">
+        Zusatzstoffe
+        <span class="en" lang="en">Additives</span>
+      </h2>
+      <ul id="legend-additives-list" class="legend-list"></ul>
+    </section>
+
+    <!-- Nur im Druck: Kontakt statt der ausführlichen Abschnitte -->
+    <p class="print-note">
+      Cafeteria im Max Planck Institut · Deutscher Platz 6, 04103 Leipzig · Tel. +49 (341) 35 50 190 ·
+      cafeteria[at]eva.mpg.de · Änderungen vorbehalten.
+    </p>
+
     <section class="hours" aria-labelledby="hours-title">
       <h2 id="hours-title" class="hours-title">
         Öffnungszeiten
@@ -53,16 +85,12 @@
       </h2>
       <dl class="hours-list">
         <div class="hours-row">
-          <dt>Mo–Do <span class="en" lang="en">Mon–Thu</span></dt>
-          <dd>07:30 – 15:00 Uhr</dd>
-        </div>
-        <div class="hours-row">
-          <dt>Fr <span class="en" lang="en">Fri</span></dt>
+          <dt>Mo–Fr <span class="en" lang="en">Mon–Fri</span></dt>
           <dd>07:30 – 14:30 Uhr</dd>
         </div>
         <div class="hours-row is-lunch">
           <dt>Mittagstisch <span class="en" lang="en">Lunch</span></dt>
-          <dd>11:30 – 14:30 Uhr</dd>
+          <dd>11:30 – 14:00 Uhr</dd>
         </div>
         <div class="hours-row is-closed">
           <dt>Sa/So, Feiertage <span class="en" lang="en">Sat/Sun, public holidays</span></dt>
@@ -96,5 +124,9 @@
     <p><a href="impressum.html">Impressum</a> · <a href="datenschutz.html">Datenschutz</a></p>
     <noscript><p>Für den Speiseplan wird JavaScript benötigt.</p></noscript>
   </footer>
+
+    </td></tr></tbody>
+    <tfoot class="sheet-foot" aria-hidden="true"><tr><td></td></tr></tfoot>
+  </table>
 </body>
 </html>

@@ -359,6 +359,8 @@ button:focus-visible {
 
 .legend[hidden] { display: none; }
 
+.legend + .legend { padding-top: 0.5rem; }
+
 .legend-title {
   margin: 0;
   color: var(--ink);
@@ -523,9 +525,108 @@ a.tag:hover { color: var(--ink); }
 
 /* ---------- Druck (Aushang) ---------- */
 
+/* Auf dem Bildschirm sind die Druck-Elemente unsichtbar; die Layout-Tabelle (.sheet) verhält sich wie normale Blöcke */
+.sheet, .sheet > tbody, .sheet > tbody > tr, .sheet > tbody > tr > td { display: block; padding: 0; border: 0; }
+.sheet-head, .sheet-foot, .print-head, .print-note { display: none; }
+
+.printbtn { display: inline-flex; align-items: center; gap: 0.4rem; }
+
+/* "Drucken" -> PDF: A4 hochkant. @page ohne Rand, damit der Browser keine eigene Kopf-/Fußzeile (Datum, URL) druckt;
+   die Ränder entstehen über body und die wiederholten Tabellen-Kopf/Fuß-Gruppen (.sheet-head/.sheet-foot). */
+@page { size: A4; margin: 0; }
+
 @media print {
-  :root { --bg: #fff; --ink: #000; --muted: #444; --line: #bbb; }
-  .navbtn, .linkbtn, .status:empty, .footer { display: none; }
-  .weeknav { padding-top: 1.5rem; }
-  .day { break-inside: avoid; }
+  :root {
+    --bg: #fff; --ink: #000; --muted: #4a4a4f; --line: #c4c4c4;
+    --vegan-fg: #17562f;  --vegan-bg: #d7eddd;  --vegan-line: #9fcdac;
+    --veg-fg: #2a6b40;    --veg-bg: #eef7f0;    --veg-line: #a5d0b2;
+    --gluten-fg: #7a4a21; --gluten-bg: #f4ebe1; --gluten-line: #d6c0a8;
+  }
+
+  * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+
+  html { font-size: 10pt; }
+
+  body {
+    margin: 0;
+    padding: 0 14mm;                /* oben/unten kommt der Rand aus der wiederholten Tabellen-Kopf-/Fußzeile */
+    background: #fff;
+    font-size: 10pt;
+    line-height: 1.3;
+  }
+
+  /* Echte Tabelle im Druck: Chrome wiederholt nur <thead>/<tfoot>, daher der Seitenrand (12 mm) auf jeder Seite */
+  .sheet { display: table; width: 100%; border-collapse: collapse; }
+  .sheet > thead { display: table-header-group; }
+  .sheet > tbody { display: table-row-group; }
+  .sheet > tfoot { display: table-footer-group; }
+  .sheet > tbody > tr { display: table-row; }
+  .sheet > tbody > tr > td { display: table-cell; }
+  .sheet > thead > tr, .sheet > tfoot > tr { display: table-row; }
+  .sheet > thead > tr > td, .sheet > tfoot > tr > td { display: table-cell; height: 12mm; padding: 0; }
+
+  /* nicht drucken */
+  .top, .weeknav, .status, .hours, .footer, .badge,
+  .navbtn, .linkbtn { display: none !important; }
+  .day.is-today .day-name::before { display: none; }
+
+  .wrap { width: auto; margin: 0; }
+
+  /* Kopf: Logo links, Titel daneben */
+  .print-head {
+    display: flex;
+    align-items: center;
+    gap: 5mm;
+    margin-bottom: 1mm;
+    padding-bottom: 4mm;
+    border-bottom: 1.5pt solid #000;
+  }
+  .print-head p { margin: 0; }
+  .print-logo { width: 20mm; height: auto; }
+  .print-name { color: var(--muted); font-size: 8pt; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; }
+  .print-title { font-size: 18pt; font-weight: 700; letter-spacing: -0.01em; line-height: 1.15; }
+  .print-lunch { margin-top: 1mm; font-size: 10pt; }
+
+  /* Tage */
+  .days { border-bottom: 0; }
+  .day {
+    grid-template-columns: 24mm 1fr;
+    gap: 0 4mm;
+    padding: 3mm 0;
+    break-inside: avoid;
+  }
+  .day:last-child { break-after: avoid; }          /* letzter Tag bleibt bei der Legende */
+  .day-name { font-size: 12pt; }
+  .day-date { font-size: 9pt; }
+
+  .dishes { gap: 2.2mm; }
+  .dish { row-gap: 0; column-gap: 3mm; }
+  .dish-meta { gap: 0 2mm; }
+  .dish-pos { font-size: 6.5pt; }
+  .pill { padding: 0 1.6mm; font-size: 6.5pt; }
+  .dish-de, .price-value { font-size: 10.5pt; line-height: 1.25; }
+  .dish-en { font-size: 8.5pt; line-height: 1.25; }
+  .price-label { font-size: 6.5pt; line-height: 1.2; }
+  .allergens { cursor: auto; }
+
+  .dishes[data-prices="1"] .dish { grid-template-columns: minmax(0, 1fr) 16mm; }
+  .dishes[data-prices="2"] .dish { grid-template-columns: minmax(0, 1fr) 16mm 16mm; }
+
+  .empty { padding: 20mm 0; }
+
+  /* Legende und Kontakt */
+  .legend { grid-template-columns: 24mm 1fr; gap: 0 4mm; padding: 3mm 0 0; font-size: 7.5pt; break-before: avoid; }
+  .legend + .legend { padding-top: 1mm; }
+  .legend-title { font-size: 7.5pt; }
+  .legend-list { gap: 0.5mm 4mm; }
+
+  .print-note {
+    display: block;
+    margin: 4mm 0 0;
+    padding-top: 3mm;
+    border-top: 0.5pt solid var(--line);
+    color: var(--muted);
+    font-size: 7.5pt;
+    text-align: center;
+  }
 }
