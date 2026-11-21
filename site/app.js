@@ -206,6 +206,30 @@
     return tokens;
   }
 
+  // Allergene direkt am Bestandteil: "Hackbällchen in Sahnesauce[a,g] dazu Kartoffelpüree[g]"
+  // -> [{text: "Hackbällchen in Sahnesauce"}, {codes: ["a","g"]}, {text: " dazu Kartoffelpüree"}, {codes: ["g"]}]
+  // Das Leerzeichen vor der Klammer entfällt, damit das Kürzel am Wort hängt.
+  function splitInline(text) {
+    const parts = [];
+    let last = 0;
+    const pushText = (s) => {
+      if (!s) return;
+      // direkt nach dem Kürzel folgt ein Wort: Leerzeichen ergänzen
+      const afterCodes = parts.length && parts[parts.length - 1].codes && /^[\p{L}\p{N}]/u.test(s);
+      parts.push({ text: afterCodes ? ` ${s}` : s });
+    };
+    for (const m of text.matchAll(/\s*\[([^\]]*)\]/g)) {
+      pushText(text.slice(last, m.index));
+      const codes = tokenizeAllergens(m[1]);
+      if (codes.length) parts.push({ codes });
+      last = m.index + m[0].length;
+    }
+    pushText(text.slice(last));
+    return parts;
+  }
+
+  const inlineCodes = (parts) => parts.flatMap((p) => p.codes || []);
+
   // Rein numerische Kürzel (1, 2, 3 …) sind Zusatzstoffe, alles andere (a, g, a1 …) Allergene.
   const isAdditive = (code) => /^\d+$/.test(code);
 
@@ -286,6 +310,8 @@
           label: pos.label,
           de,
           en: cell(row, cols.en),
+          deParts: splitInline(de),
+          enParts: splitInline(cell(row, cols.en)),
           allergens: tokenizeAllergens(cell(row, cols.allergens)),
           tags: parseTags(cell(row, cols.tags)),
           small: formatPrice(cell(row, cols.small)),
@@ -362,13 +388,24 @@
     return sup;
   }
 
-  // Deutscher Haupttext (optional mit Allergenen), darunter (falls vorhanden) die englische Zeile.
-  function appendBilingual(parent, { de, en }, allergens = []) {
-    const main = el("span", "dish-de", de);
+  // Text mit eingebetteten Kürzeln: Teile aus splitInline, sonst der reine Text.
+  function fillText(node, text, parts) {
+    if (!parts) { node.textContent = text; return; }
+    for (const p of parts) {
+      node.append(p.codes ? renderAllergens(resolveAllergens(p.codes, state.allergens)) : document.createTextNode(p.text));
+    }
+  }
+
+  // Deutscher Haupttext, dahinter die Allergene, die nicht schon am Bestandteil stehen (Spalte "Allergene"),
+  // darunter (falls vorhanden) die englische Zeile.
+  function appendBilingual(parent, { de, en, deParts, enParts }, allergens = []) {
+    const main = el("span", "dish-de");
+    fillText(main, de, deParts);
     if (allergens.length) main.append(renderAllergens(allergens));
     parent.append(main);
     if (en) {
-      const line = el("span", "dish-en", en);
+      const line = el("span", "dish-en");
+      fillText(line, en, enParts);
       line.lang = "en";
       parent.append(line);
     }
@@ -402,7 +439,11 @@
       meta.append(pill);
     }
     const text = el("div", "dish-text");
-    appendBilingual(text, dish, resolveAllergens(dish.allergens, state.allergens));
+    // Was im Namen schon an einem Bestandteil steht, wird hinten nicht wiederholt; der Rest aus der Spalte bleibt sichtbar.
+    const defs = state.allergens;
+    const inline = new Set(resolveAllergens(inlineCodes(dish.deParts), defs));
+    const trailing = resolveAllergens(dish.allergens, defs).filter((k) => !inline.has(k));
+    appendBilingual(text, dish, trailing);
     item.append(meta, text);
     if (priceCols) item.append(...renderPrices(dish));
     return item;
@@ -493,7 +534,10 @@
     const used = new Set();
     for (const { entry } of entries) {
       if (!entry || entry.note.de) continue;
-      for (const dish of entry.dishes) resolveAllergens(dish.allergens, defs).forEach((k) => used.add(k));
+      for (const dish of entry.dishes) {
+        const tokens = [...dish.allergens, ...inlineCodes(dish.deParts), ...inlineCodes(dish.enParts)];
+        resolveAllergens(tokens, defs).forEach((k) => used.add(k));
+      }
     }
     if (!defs) renderLegend([], used.size > 0);
     else renderLegend([...defs.keys()].filter((k) => used.has(k)), false);

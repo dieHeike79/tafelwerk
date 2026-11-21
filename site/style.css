@@ -256,7 +256,7 @@ button:focus-visible {
 .allergens {
   margin-left: 0.2em;
   color: var(--muted);
-  font-size: 0.66em;
+  font-size: 0.7em;
   font-weight: 600;
   letter-spacing: 0.04em;
   line-height: 0;
@@ -596,6 +596,7 @@ a.tag:hover { color: var(--ink); }
     break-inside: avoid;
   }
   .day:last-child { break-after: avoid; }          /* letzter Tag bleibt bei der Legende */
+  .day:first-child { border-top: 0; }              /* der Kopf hat schon eine Linie */
   .day-name { font-size: 12pt; }
   .day-date { font-size: 9pt; }
 
