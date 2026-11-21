@@ -12,6 +12,12 @@
     // Legende der Allergene (Tabellenblatt "Allergene": Allergen | Name de | Name en), ebenfalls als CSV veröffentlicht.
     // Leer lassen = eingebaute Standardliste a–n (siehe DEFAULT_ALLERGENS).
     allergensUrl: "https://docs.google.com/spreadsheets/d/e/2PACX-1vT_fCihwVSW7KWjxZt0G5pkmDRnV_x2Dd81sZe8UQqz-l8rmkNrz3CP9XlqOt8wZiuS4XSw8979wiEg/pub?gid=1917520558&single=true&output=csv",
+    // Feste Zeilen am Ende des Tagesdrucks (A4), z. B. Salat und Dessert. Preise wie "1,90"; leer = ohne Preis.
+    // Gilt der Preis je Menge, das in den Namen schreiben, z. B. "Salat vom Büfett (je 100 g)".
+    printExtras: [
+      { de: "Salat vom Büfett", en: "Salad from the buffet", intern: "", extern: "" },
+      { de: "Dessert", en: "Dessert", intern: "", extern: "" },
+    ],
   };
 
   const CACHE_KEY = "cafeteria-menu-csv-v1";
@@ -136,21 +142,21 @@
 
   // Standardliste, nur wenn CONFIG.allergensUrl leer ist: die 14 Pflichtallergene (LMIV Anhang II), a–n in dieser Reihenfolge.
   const DEFAULT_ALLERGENS = new Map(Object.entries({
-    a: ["Glutenhaltiges Getreide", "Cereals containing gluten"],
-    b: ["Krebstiere", "Crustaceans"],
-    c: ["Eier", "Eggs"],
-    d: ["Fisch", "Fish"],
-    e: ["Erdnüsse", "Peanuts"],
-    f: ["Soja", "Soy"],
-    g: ["Milch (Laktose)", "Milk (lactose)"],
-    h: ["Schalenfrüchte (Nüsse)", "Tree nuts"],
-    i: ["Sellerie", "Celery"],
-    j: ["Senf", "Mustard"],
-    k: ["Sesam", "Sesame"],
-    l: ["Sulfite (Schwefeldioxid)", "Sulphites"],
-    m: ["Lupinen", "Lupin"],
-    n: ["Weichtiere", "Molluscs"],
-  }).map(([code, [de, en]]) => [code, { de, en }]));
+    A: ["Glutenhaltiges Getreide", "Cereals containing gluten"],
+    B: ["Krebstiere", "Crustaceans"],
+    C: ["Eier", "Eggs"],
+    D: ["Fisch", "Fish"],
+    E: ["Erdnüsse", "Peanuts"],
+    F: ["Soja", "Soy"],
+    G: ["Milch (Laktose)", "Milk (lactose)"],
+    H: ["Schalenfrüchte (Nüsse)", "Tree nuts"],
+    I: ["Sellerie", "Celery"],
+    J: ["Senf", "Mustard"],
+    K: ["Sesam", "Sesame"],
+    L: ["Sulfite (Schwefeldioxid)", "Sulphites"],
+    M: ["Lupinen", "Lupin"],
+    N: ["Weichtiere", "Molluscs"],
+  }).map(([code, [de, en]]) => [code.toLowerCase(), { de, en }]));
 
   // Tabellenblatt "Allergene": Allergen (Kürzel) | Name de | Name en  ->  Map Kürzel -> { de, en }, in Tabellenreihenfolge.
   function parseAllergenSheet(rows) {
@@ -163,7 +169,7 @@
     if (codeCol < 0 || deCol < 0) throw new Error("Spalten 'Allergen' und 'Name de' fehlen");
     const defs = new Map();
     for (const row of rows.slice(1)) {
-      const code = (row[codeCol] || "").trim().toLowerCase();
+      const code = (row[codeCol] || "").trim().toLowerCase(); // intern klein, angezeigt groß (displayCode)
       if (!code) continue;
       defs.set(code, { de: (row[deCol] || "").trim(), en: enCol >= 0 ? (row[enCol] || "").trim() : "" });
     }
@@ -269,6 +275,11 @@
   // Position: Suppe, Gericht 1, Gericht 2, … oder Hinweis (Gericht/Englisch enthalten dann den Hinweistext).
   // Allergene, Kennzeichnung und Preise sind optional.
   // Ergebnis: Map "yyyy-mm-dd" -> { dishes: [{label, de, en, allergens, tags, small, large}], note: {de, en} }
+  // Preisspalte finden: beginnt mit "Preis", "Klein" oder "Groß", enthält die Größe und (nicht) das Wort "extern".
+  function priceCol(header, sizeRe, external) {
+    return header.findIndex((h) => /^(preis|klein|gro)/.test(h) && sizeRe.test(h) && /extern/.test(h) === external);
+  }
+
   function parseMenu(rows) {
     if (!rows.length) throw new Error("CSV ist leer");
     const header = rows[0].map((h) => h.trim().toLowerCase());
@@ -281,8 +292,12 @@
       en: col(/^engl/),
       allergens: col(/^allergen/),
       tags: col(/^kennzeichnung/),
-      small: col(/^(preis\s*)?klein/),
-      large: col(/^(preis\s*)?gro(ß|ss)/),
+      // "Preis klein" / "Preis groß" = interne Preise (Webseite und Druck);
+      // "Preis klein extern" / "Preis groß extern" = externe Preise (nur im Tagesdruck).
+      small: priceCol(header, /klein/, false),
+      large: priceCol(header, /gro(ß|ss)/, false),
+      smallExt: priceCol(header, /klein/, true),
+      largeExt: priceCol(header, /gro(ß|ss)/, true),
     };
     // Ohne Freigabe-Spalte wird bewusst nichts angezeigt (lieber leer als versehentlich veröffentlicht).
     if (cols.date < 0 || cols.released < 0 || cols.position < 0 || cols.de < 0) {
@@ -316,6 +331,8 @@
           tags: parseTags(cell(row, cols.tags)),
           small: formatPrice(cell(row, cols.small)),
           large: formatPrice(cell(row, cols.large)),
+          smallExt: formatPrice(cell(row, cols.smallExt)),
+          largeExt: formatPrice(cell(row, cols.largeExt)),
         });
       }
     }
@@ -379,10 +396,13 @@
     return node;
   };
 
+  // Kürzel werden intern klein verglichen (a = A), aber immer großgeschrieben angezeigt: a1 -> A1.
+  const displayCode = (code) => code.toUpperCase();
+
   // Allergene als kleine, hochgestellte Buchstaben direkt hinter dem Namen: "Gulasch mit Nudeln ᵃ,ⁱ"
   function renderAllergens(list) {
     const sup = el("sup", "allergens");
-    sup.append(el("span", "sr-only", "Allergene und Zusatzstoffe: "), document.createTextNode(list.join(",")));
+    sup.append(el("span", "sr-only", "Allergene und Zusatzstoffe: "), document.createTextNode(list.map(displayCode).join(",")));
     const defs = state.allergens;
     sup.title = list.map((k) => (defs && defs.has(k) && defs.get(k).de ? defs.get(k).de : k)).join(", ");
     return sup;
@@ -428,23 +448,33 @@
     return [price(single, "", "is-single")];
   }
 
+  // Name (deutsch + englisch) mit Allergenen.
+  // Was im Namen schon an einem Bestandteil steht, wird hinten nicht wiederholt; der Rest aus der Spalte bleibt sichtbar.
+  function renderDishText(dish) {
+    const text = el("div", "dish-text");
+    const defs = state.allergens;
+    const inline = new Set(resolveAllergens(inlineCodes(dish.deParts), defs));
+    const trailing = resolveAllergens(dish.allergens, defs).filter((k) => !inline.has(k));
+    appendBilingual(text, dish, trailing);
+    return text;
+  }
+
+  // Kennzeichnungs-Pillen (vegan, vegetarisch, glutenfrei)
+  function renderTags(dish, parent) {
+    for (const tag of dish.tags) {
+      const pill = el("span", tag.key ? `pill is-${tag.key}` : "pill", tag.de);
+      if (tag.en) pill.title = tag.en;
+      parent.append(pill);
+    }
+  }
+
   // Eine Zeile: "SUPPE  [Vegan]" darüber, darunter Name mit Allergenen, Englisch und rechts die Preise.
   function renderDish(dish, priceCols) {
     const item = el("li", "dish");
     const meta = el("div", "dish-meta");
     meta.append(el("span", "dish-pos", dish.label));
-    for (const tag of dish.tags) {
-      const pill = el("span", tag.key ? `pill is-${tag.key}` : "pill", tag.de);
-      if (tag.en) pill.title = tag.en;
-      meta.append(pill);
-    }
-    const text = el("div", "dish-text");
-    // Was im Namen schon an einem Bestandteil steht, wird hinten nicht wiederholt; der Rest aus der Spalte bleibt sichtbar.
-    const defs = state.allergens;
-    const inline = new Set(resolveAllergens(inlineCodes(dish.deParts), defs));
-    const trailing = resolveAllergens(dish.allergens, defs).filter((k) => !inline.has(k));
-    appendBilingual(text, dish, trailing);
-    item.append(meta, text);
+    renderTags(dish, meta);
+    item.append(meta, renderDishText(dish));
     if (priceCols) item.append(...renderPrices(dish));
     return item;
   }
@@ -462,6 +492,13 @@
       el("span", "day-date", `${date.getUTCDate()}. ${MONTHS[date.getUTCMonth()]}`),
     );
     if (isToday) head.append(el("span", "badge", "Heute"));
+    if (!closed && entry && entry.dishes.length) {
+      const btn = el("button", "linkbtn daybtn", "Tag drucken");
+      btn.type = "button";
+      btn.setAttribute("aria-label", `${DAY_NAMES[index]}, ${date.getUTCDate()}. ${MONTHS[date.getUTCMonth()]} drucken`);
+      btn.addEventListener("click", () => printDay(date, index, entry));
+      head.append(btn);
+    }
 
     const body = el("div", "day-body");
     if (closed) {
@@ -485,6 +522,106 @@
   }
 
   // ---------------------------------------------------------------
+  // Tagesdruck (A4): alle Gerichte mit internen und externen Preisen, dazu Salat und Dessert
+  // ---------------------------------------------------------------
+
+  // Preise einer Gruppe (intern oder extern) auf die Spalten verteilen.
+  // sizes = 2: [klein, groß]; ein einzelner Preis steht in der Spalte "Groß" (wie auf der Webseite). sizes = 1: [preis].
+  function priceCells(small, large, sizes) {
+    if (sizes === 2) return small && large ? [small, large] : ["", small || large];
+    return [small || large];
+  }
+
+  function renderDayPrint(date, index, entry) {
+    const sizes = entry.dishes.some((d) => (d.small && d.large) || (d.smallExt && d.largeExt)) ? 2 : 1;
+    const table = el("table", "dp-table");
+    table.dataset.sizes = String(sizes);
+
+    // Kopf: Intern | Extern, bei zwei Größen darunter Klein | Groß
+    const thead = el("thead");
+    const row1 = el("tr");
+    const th = (text, en, cls, span) => {
+      const cell = el("th", cls);
+      cell.append(document.createTextNode(text));
+      if (en) { const e = el("span", "en", en); e.lang = "en"; cell.append(e); }
+      if (span > 1) cell.colSpan = span;
+      return cell;
+    };
+    const corner = th("", "", "dp-corner");
+    if (sizes === 2) corner.rowSpan = 2;
+    row1.append(corner, th("Intern", "Internal", "dp-group", sizes), th("Extern", "External", "dp-group is-ext", sizes));
+    thead.append(row1);
+    if (sizes === 2) {
+      const row2 = el("tr");
+      row2.append(th("Klein", "Small", "dp-size"), th("Groß", "Large", "dp-size"),
+        th("Klein", "Small", "dp-size is-ext"), th("Groß", "Large", "dp-size"));
+      thead.append(row2);
+    }
+
+    const tbody = el("tbody");
+    const addRow = (first, intern, extern, cls) => {
+      const tr = el("tr", cls);
+      const td = el("td", "dp-dish");
+      td.append(...first);
+      tr.append(td);
+      intern.forEach((p, i) => tr.append(el("td", i === 0 ? "dp-price is-first" : "dp-price", p)));
+      extern.forEach((p, i) => tr.append(el("td", i === 0 ? "dp-price is-ext" : "dp-price", p)));
+      tbody.append(tr);
+    };
+
+    for (const dish of entry.dishes) {
+      const meta = el("div", "dish-meta");
+      meta.append(el("span", "dish-pos", dish.label));
+      renderTags(dish, meta);
+      addRow([meta, renderDishText(dish)],
+        priceCells(dish.small, dish.large, sizes), priceCells(dish.smallExt, dish.largeExt, sizes), "dp-row");
+    }
+    // Feste Zeilen (Salat, Dessert): ein Preis je Gruppe, in der Spalte "Groß" bzw. der einzigen Spalte
+    for (const extra of CONFIG.printExtras || []) {
+      const text = el("div", "dish-text");
+      appendBilingual(text, { de: extra.de, en: extra.en });
+      const p = (v) => priceCells("", formatPrice(String(v || "")), sizes);
+      addRow([text], p(extra.intern), p(extra.extern), "dp-row is-extra");
+    }
+    table.append(thead, tbody);
+
+    const box = el("div", "dp");
+    const head = el("div", "dp-head");
+    head.append(
+      el("h2", "dp-day", DAY_NAMES[index]),
+      el("p", "dp-date", `${date.getUTCDate()}. ${MONTHS[date.getUTCMonth()]} ${date.getUTCFullYear()}`),
+    );
+    box.append(head, table);
+    return box;
+  }
+
+  function printDay(date, index, entry) {
+    ui.dayPrint.replaceChildren(renderDayPrint(date, index, entry));
+    ui.printTitle.textContent = "Tagesmenü"; // Tag und Datum stehen groß darunter
+    // Legende nur für die Kürzel dieses Tages
+    const defs = state.allergens;
+    const used = new Set();
+    for (const dish of entry.dishes) {
+      const tokens = [...dish.allergens, ...inlineCodes(dish.deParts), ...inlineCodes(dish.enParts)];
+      resolveAllergens(tokens, defs).forEach((k) => used.add(k));
+    }
+    if (!defs) renderLegend([], used.size > 0);
+    else renderLegend([...defs.keys()].filter((k) => used.has(k)), false);
+
+    const pageTitle = document.title;
+    document.title = `Tagesmenü ${toKey(date)}`; // Vorschlag für den PDF-Dateinamen
+    document.body.classList.add("print-day");
+    const restore = () => {
+      document.body.classList.remove("print-day");
+      document.title = pageTitle;
+      ui.dayPrint.replaceChildren();
+      render();
+    };
+    window.addEventListener("afterprint", restore, { once: true });
+    window.print();
+  }
+
+  // ---------------------------------------------------------------
   // Anwendung
   // ---------------------------------------------------------------
   const $ = (id) => document.getElementById(id);
@@ -493,6 +630,7 @@
     days: $("days"), status: $("status"), legend: $("legend"), legendList: $("legend-list"),
     legendAdd: $("legend-additives"), legendAddList: $("legend-additives-list"),
     prev: $("prev"), next: $("next"), today: $("today"), print: $("print"), printTitle: $("printtitle"),
+    dayPrint: $("dayprint"),
   };
 
   // allergens: Map Kürzel -> { de, en }, oder null, solange (oder falls) die Allergen-Tabelle nicht verfügbar ist
@@ -553,7 +691,7 @@
         ...codes.map((k) => {
           const { de, en } = defs.get(k);
           const item = el("li", "legend-item");
-          item.append(el("b", "legend-key", k), document.createTextNode(de));
+          item.append(el("b", "legend-key", displayCode(k)), document.createTextNode(de));
           if (en) {
             const enEl = el("span", "en", en);
             enEl.lang = "en";

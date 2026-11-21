@@ -531,6 +531,11 @@ a.tag:hover { color: var(--ink); }
 
 .printbtn { display: inline-flex; align-items: center; gap: 0.4rem; }
 
+/* "Tag drucken" in jeder Tageskarte */
+.daybtn { margin: 0.35rem 0 0 -0.5rem; color: var(--muted); font-size: 0.8rem; font-weight: 500; }
+.daybtn:hover { color: var(--ink); }
+.dayprint { display: none; }
+
 /* "Drucken" -> PDF: A4 hochkant. @page ohne Rand, damit der Browser keine eigene Kopf-/Fußzeile (Datum, URL) druckt;
    die Ränder entstehen über body und die wiederholten Tabellen-Kopf/Fuß-Gruppen (.sheet-head/.sheet-foot). */
 @page { size: A4; margin: 0; }
@@ -630,4 +635,49 @@ a.tag:hover { color: var(--ink); }
     font-size: 7.5pt;
     text-align: center;
   }
+
+  /* ---------- Tagesdruck: ein Tag auf einer A4-Seite, größer gesetzt ---------- */
+  body.print-day .days { display: none; }
+  body.print-day .dayprint { display: block; }
+  body.print-day .legend { grid-template-columns: 1fr; gap: 0.5mm; padding-top: 5mm; font-size: 9pt; }
+  body.print-day .legend + .legend { padding-top: 2mm; }
+  body.print-day .legend-title { font-size: 9pt; }
+  body.print-day .print-note { margin-top: 8mm; font-size: 8.5pt; }
+  body.print-day .print-title { font-size: 20pt; }
+
+  .dp-head { display: flex; align-items: baseline; gap: 4mm; margin: 6mm 0 3mm; }
+  .dp-day { margin: 0; font-size: 26pt; font-weight: 700; letter-spacing: -0.02em; line-height: 1; }
+  .dp-date { margin: 0; color: var(--muted); font-size: 13pt; }
+
+  .dp-table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+  .dp-table th {
+    padding: 1.5mm 0 1.5mm 3mm;
+    color: var(--muted);
+    font-size: 8pt;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-align: right;
+    text-transform: uppercase;
+    vertical-align: bottom;
+    white-space: nowrap;
+  }
+  .dp-table th .en { display: block; font-weight: 400; letter-spacing: 0.04em; text-transform: none; }
+  .dp-table .dp-group { color: var(--ink); font-size: 10pt; }
+  .dp-table thead tr:last-child th { border-bottom: 1.2pt solid #000; }
+  .dp-table .is-ext { border-left: 0.75pt solid var(--line); padding-left: 4mm; }
+
+  .dp-row { break-inside: avoid; }
+  .dp-row td { padding: 4mm 0 4mm 3mm; border-bottom: 0.5pt solid var(--line); vertical-align: top; }
+  .dp-row td.dp-dish { padding-left: 0; width: 100%; }
+  .dp-row.is-extra td { padding-top: 3mm; padding-bottom: 3mm; }
+  .dp-row:not(.is-extra) + .is-extra td { border-top: 1.2pt solid #000; } /* Linie vor Salat/Dessert */
+
+  .dp .dish-meta { display: flex; gap: 0 2mm; margin-bottom: 0.8mm; }
+  .dp .dish-pos { font-size: 8pt; }
+  .dp .pill { padding: 0 1.8mm; font-size: 8pt; }
+  .dp .dish-de { font-size: 14pt; line-height: 1.25; }
+  .dp .dish-en { font-size: 10.5pt; line-height: 1.3; }
+  .dp .is-extra .dish-de { font-size: 12.5pt; }
+
+  .dp-price { min-width: 17mm; font-size: 13pt; font-weight: 500; text-align: right; white-space: nowrap; }
 }
