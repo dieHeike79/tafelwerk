@@ -33,7 +33,7 @@
   </header>
 
   <main class="wrap">
-    <nav class="weeknav" aria-label="Woche wählen">
+    <nav class="weeknav" id="weeknav" aria-label="Woche wählen">
       <div class="weekinfo">
         <h2 id="weektitle">Kalenderwoche</h2>
         <p id="weekrange"></p>
@@ -53,8 +53,19 @@
       </div>
     </nav>
 
+    <!-- Tagesansicht (#tag/yyyy-mm-dd): zurück zur Woche und drucken -->
+    <nav class="daynav" id="daynav" aria-label="Tagesansicht" hidden>
+      <a class="linkbtn backlink" id="backweek" href="./">← Zurück zur Woche</a>
+      <button type="button" class="linkbtn printbtn" id="printday">
+        <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M6 9V3h12v6M6 18H4a1 1 0 0 1-1-1v-6a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v6a1 1 0 0 1-1 1h-2M7 14h10v7H7z" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Tag drucken
+      </button>
+    </nav>
+
     <p id="status" class="status" role="status">Menüplan wird geladen …</p>
     <section id="days" class="days" aria-label="Speiseplan der Woche"></section>
+    <!-- Tagesansicht: wird gefüllt, wenn #tag/yyyy-mm-dd in der Adresse steht (Bildschirm und Druck) -->
+    <section id="dayprint" class="dayprint" aria-label="Tagesmenü"></section>
 
     <section id="legend" class="legend" aria-labelledby="legend-title" hidden>
       <h2 id="legend-title" class="legend-title">

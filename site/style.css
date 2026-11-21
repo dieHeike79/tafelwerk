@@ -531,6 +531,64 @@ a.tag:hover { color: var(--ink); }
 
 .printbtn { display: inline-flex; align-items: center; gap: 0.4rem; }
 
+/* ---------- Tagesansicht (#tag/yyyy-mm-dd), am Bildschirm wie im Druck ---------- */
+
+/* Datum in der Wochenansicht als Link */
+a.day-date { color: var(--muted); text-decoration: underline; text-decoration-color: var(--line); text-underline-offset: 0.25em; }
+a.day-date:hover { color: var(--ink); text-decoration-color: currentColor; }
+
+.weeknav[hidden], .daynav[hidden], .printbtn[hidden] { display: none; }
+.dayprint { display: none; }
+body.day-view .dayprint { display: block; }
+body.day-view .days { display: none; }
+
+.daynav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 2rem 0 0;
+}
+a.linkbtn { display: inline-block; font-size: 0.8333rem; } /* gleiche Größe wie die Knöpfe daneben */
+.backlink { margin-left: -0.5rem; }
+
+.dp { padding-bottom: 1.5rem; border-bottom: 1px solid var(--line); }
+.dp-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.25rem 1rem; margin: 1.5rem 0 1.5rem; }
+.dp-day { margin: 0; font-size: clamp(2.5rem, 8vw, 4rem); font-weight: 700; letter-spacing: -0.03em; line-height: 1; }
+.dp-date { margin: 0; color: var(--muted); font-size: 1.25rem; }
+
+.dp-table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+.dp-table th {
+  padding: 0.35rem 0 0.35rem 0.75rem;
+  color: var(--muted);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-align: right;
+  text-transform: uppercase;
+  vertical-align: bottom;
+  white-space: nowrap;
+}
+.dp-table th .en { display: block; font-weight: 400; letter-spacing: 0.04em; text-transform: none; }
+.dp-table .dp-group { color: var(--ink); font-size: 0.85rem; }
+.dp-table thead tr:last-child th { border-bottom: 2px solid var(--ink); }
+.dp-table .is-ext { border-left: 1px solid var(--line); padding-left: 1rem; }
+
+.dp-row td { padding: 1.1rem 0 1.1rem 0.75rem; border-bottom: 1px solid var(--line); vertical-align: top; }
+.dp-row td.dp-dish { width: 100%; padding-left: 0; }
+.dp-row:not(.is-extra) + .is-extra td { border-top: 2px solid var(--ink); } /* Linie vor Salat/Dessert */
+.dp-row:last-child td { border-bottom: 0; }
+.dp .dish-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 0.25rem 0.6rem; margin-bottom: 0.2rem; }
+.dp-price { min-width: 4.5rem; font-size: 1.1875rem; font-weight: 500; text-align: right; white-space: nowrap; }
+.dp .pending { padding: 1rem 0 2rem; }
+
+@media (max-width: 40rem) {
+  .dp-table th, .dp-row td { padding-left: 0.4rem; }
+  .dp-table .is-ext { padding-left: 0.5rem; }
+  .dp-price { min-width: 0; font-size: 0.95rem; }
+  .dp .dish-de { font-size: 1.0625rem; }
+}
+
 /* "Drucken" -> PDF: A4 hochkant. @page ohne Rand, damit der Browser keine eigene Kopf-/Fußzeile (Datum, URL) druckt;
    die Ränder entstehen über body und die wiederholten Tabellen-Kopf/Fuß-Gruppen (.sheet-head/.sheet-foot). */
 @page { size: A4; margin: 0; }
@@ -630,4 +688,35 @@ a.tag:hover { color: var(--ink); }
     font-size: 7.5pt;
     text-align: center;
   }
+
+  /* ---------- Tagesdruck: ein Tag auf einer A4-Seite, größer gesetzt ---------- */
+  .daynav { display: none !important; }
+  body.day-view .legend { grid-template-columns: 1fr; gap: 0.5mm; padding-top: 5mm; font-size: 9pt; }
+  body.day-view .legend + .legend { padding-top: 2mm; }
+  body.day-view .legend-title { font-size: 9pt; }
+  body.day-view .print-note { margin-top: 8mm; font-size: 8.5pt; }
+  body.day-view .print-title { font-size: 20pt; }
+
+  .dp { padding-bottom: 0; border-bottom: 0.5pt solid var(--line); }
+  .dp-head { gap: 4mm; margin: 6mm 0 3mm; }
+  .dp-day { font-size: 26pt; letter-spacing: -0.02em; }
+  .dp-date { font-size: 13pt; }
+
+  .dp-table th { padding: 1.5mm 0 1.5mm 3mm; font-size: 8pt; }
+  .dp-table .dp-group { font-size: 10pt; }
+  .dp-table thead tr:last-child th { border-bottom: 1.2pt solid #000; }
+  .dp-table .is-ext { border-left: 0.75pt solid var(--line); padding-left: 4mm; }
+
+  .dp-row { break-inside: avoid; }
+  .dp-row td { padding: 4mm 0 4mm 3mm; border-bottom: 0.5pt solid var(--line); }
+  .dp-row.is-extra td { padding-top: 3mm; padding-bottom: 3mm; }
+  .dp-row:not(.is-extra) + .is-extra td { border-top: 1.2pt solid #000; }
+
+  .dp .dish-meta { gap: 0 2mm; margin-bottom: 0.8mm; }
+  .dp .dish-pos { font-size: 8pt; }
+  .dp .pill { padding: 0 1.8mm; font-size: 8pt; }
+  .dp .dish-de { font-size: 14pt; line-height: 1.25; }
+  .dp .dish-en { font-size: 10.5pt; line-height: 1.3; }
+  .dp .is-extra .dish-de { font-size: 12.5pt; }
+  .dp-price { min-width: 17mm; font-size: 13pt; }
 }
