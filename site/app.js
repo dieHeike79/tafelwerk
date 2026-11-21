@@ -351,10 +351,10 @@
     }
   }
 
-  // Lädt frisch; fällt bei Fehlern auf den zuletzt gespeicherten Stand zurück.
+  // Lädt frisch; fällt bei Fehlern (oder nach 10 s ohne Antwort) auf den zuletzt gespeicherten Stand zurück.
   async function loadMenu() {
     try {
-      const res = await fetch(CONFIG.csvUrl, { cache: "no-cache" });
+      const res = await fetch(CONFIG.csvUrl, { cache: "no-cache", signal: AbortSignal.timeout(10000) });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const text = await res.text();
       const menu = parseMenu(parseCsv(text));
