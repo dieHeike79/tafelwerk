@@ -526,73 +526,57 @@
   // Tagesdruck (A4): alle Gerichte mit internen und externen Preisen, dazu Salat und Dessert
   // ---------------------------------------------------------------
 
-  // Preise einer Gruppe (intern oder extern) auf die Spalten verteilen.
-  // sizes = 2: [klein, groß]; ein einzelner Preis steht in der Spalte "Groß" (wie auf der Webseite). sizes = 1: [preis].
-  function priceCells(small, large, sizes) {
-    if (sizes === 2) return small && large ? [small, large] : ["", small || large];
-    return [small || large];
+  // Ein Preis in der Tagesansicht: groß der externe Preis, klein darunter der interne, darunter "Klein"/"Groß".
+  // Fehlt der externe Preis, steht der interne groß (dann sieht es aus wie in der Wochenansicht).
+  function dayPrice(ext, int, label, cls) {
+    const cell = el("span", `price ${cls}`);
+    cell.append(el("span", "price-value", ext || int));
+    if (ext && int) cell.append(el("span", "price-intern", `intern ${int}`));
+    if (label) cell.append(el("span", "price-label", label));
+    return cell;
   }
 
-  function renderDayPrint(date, index, entry) {
-    const sizes = entry.dishes.some((d) => (d.small && d.large) || (d.smallExt && d.largeExt)) ? 2 : 1;
-    const table = el("table", "dp-table");
-    table.dataset.sizes = String(sizes);
-
-    // Kopf: Intern | Extern, bei zwei Größen darunter Klein | Groß
-    const thead = el("thead");
-    const row1 = el("tr");
-    const th = (text, en, cls, span) => {
-      const cell = el("th", cls);
-      cell.append(document.createTextNode(text));
-      if (en) { const e = el("span", "en", en); e.lang = "en"; cell.append(e); }
-      if (span > 1) cell.colSpan = span;
-      return cell;
-    };
-    const corner = th("", "", "dp-corner");
-    if (sizes === 2) corner.rowSpan = 2;
-    row1.append(corner, th("Intern", "Internal", "dp-group", sizes), th("Extern", "External", "dp-group is-ext", sizes));
-    thead.append(row1);
-    if (sizes === 2) {
-      const row2 = el("tr");
-      row2.append(th("Klein", "Small", "dp-size"), th("Groß", "Large", "dp-size"),
-        th("Klein", "Small", "dp-size is-ext"), th("Groß", "Large", "dp-size"));
-      thead.append(row2);
+  function renderDayPrices(d) {
+    const hasSmall = d.small || d.smallExt;
+    const hasLarge = d.large || d.largeExt;
+    if (hasSmall && hasLarge) {
+      return [dayPrice(d.smallExt, d.small, "Klein", "is-small"), dayPrice(d.largeExt, d.large, "Groß", "is-large")];
     }
+    if (hasSmall || hasLarge) return [dayPrice(d.smallExt || d.largeExt, d.small || d.large, "", "is-single")];
+    return [];
+  }
 
-    const tbody = el("tbody");
-    const addRow = (first, intern, extern, cls) => {
-      const tr = el("tr", cls);
-      const td = el("td", "dp-dish");
-      td.append(...first);
-      tr.append(td);
-      intern.forEach((p, i) => tr.append(el("td", i === 0 ? "dp-price is-first" : "dp-price", p)));
-      extern.forEach((p, i) => tr.append(el("td", i === 0 ? "dp-price is-ext" : "dp-price", p)));
-      tbody.append(tr);
-    };
+  // Tagesansicht/Tagesdruck: Gerichte wie in der Wochenkarte, danach Salat und Dessert (feste Zeilen aus CONFIG).
+  function renderDayPrint(date, index, entry) {
+    const extras = (CONFIG.printExtras || []).map((x) => ({
+      de: x.de, en: x.en, small: "", large: formatPrice(String(x.intern || "")),
+      smallExt: "", largeExt: formatPrice(String(x.extern || "")),
+    }));
+    const all = [...entry.dishes, ...extras];
+    const list = el("ul", "dishes");
+    list.dataset.prices = all.some((d) => (d.small || d.smallExt) && (d.large || d.largeExt)) ? "2"
+      : all.some((d) => d.small || d.large || d.smallExt || d.largeExt) ? "1" : "0";
 
     for (const dish of entry.dishes) {
+      const item = el("li", "dish");
       const meta = el("div", "dish-meta");
       meta.append(el("span", "dish-pos", dish.label));
       renderTags(dish, meta);
-      addRow([meta, renderDishText(dish)],
-        priceCells(dish.small, dish.large, sizes), priceCells(dish.smallExt, dish.largeExt, sizes), "dp-row");
+      item.append(meta, renderDishText(dish), ...renderDayPrices(dish));
+      list.append(item);
     }
-    // Feste Zeilen (Salat, Dessert): ein Preis je Gruppe, in der Spalte "Groß" bzw. der einzigen Spalte
-    for (const extra of CONFIG.printExtras || []) {
+    extras.forEach((extra, i) => {
+      const item = el("li", i === 0 ? "dish is-extra is-extra-first" : "dish is-extra");
       const text = el("div", "dish-text");
-      appendBilingual(text, { de: extra.de, en: extra.en });
-      const p = (v) => priceCells("", formatPrice(String(v || "")), sizes);
-      addRow([text], p(extra.intern), p(extra.extern), "dp-row is-extra");
-    }
-    table.append(thead, tbody);
+      appendBilingual(text, extra);
+      item.append(text, ...renderDayPrices(extra));
+      list.append(item);
+    });
 
     const box = el("div", "dp");
     const head = el("div", "dp-head");
-    head.append(
-      el("h2", "dp-day", WEEKDAYS[index]),
-      el("p", "dp-date", formatLongDate(date)),
-    );
-    box.append(head, table);
+    head.append(el("h2", "dp-day", WEEKDAYS[index]), el("p", "dp-date", formatLongDate(date)));
+    box.append(head, list);
     return box;
   }
 

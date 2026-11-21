@@ -557,36 +557,26 @@ a.linkbtn { display: inline-block; font-size: 0.8333rem; } /* gleiche Größe wi
 .dp-day { margin: 0; font-size: clamp(2.5rem, 8vw, 4rem); font-weight: 700; letter-spacing: -0.03em; line-height: 1; }
 .dp-date { margin: 0; color: var(--muted); font-size: 1.25rem; }
 
-.dp-table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
-.dp-table th {
-  padding: 0.35rem 0 0.35rem 0.75rem;
-  color: var(--muted);
-  font-size: 0.7rem;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  text-align: right;
-  text-transform: uppercase;
-  vertical-align: bottom;
-  white-space: nowrap;
-}
-.dp-table th .en { display: block; font-weight: 400; letter-spacing: 0.04em; text-transform: none; }
-.dp-table .dp-group { color: var(--ink); font-size: 0.85rem; }
-.dp-table thead tr:last-child th { border-bottom: 2px solid var(--ink); }
-.dp-table .is-ext { border-left: 1px solid var(--line); padding-left: 1rem; }
+/* Gerichte wie in der Wochenkarte; Salat und Dessert durch eine Linie abgesetzt */
+.dp .dishes { gap: 1.75rem; }
+.dp .dish.is-extra { grid-template-rows: auto; }
+.dp .dish.is-extra .dish-text, .dp .dish.is-extra .price { grid-row: 1; }
+.dp .dish.is-extra-first { padding-top: 1.75rem; border-top: 1px solid var(--line); }
+.dp .dishes[data-prices="1"] .dish { grid-template-columns: minmax(0, 1fr) 6rem; }
+.dp .dishes[data-prices="2"] .dish { grid-template-columns: minmax(0, 1fr) 6rem 6rem; }
 
-.dp-row td { padding: 1.1rem 0 1.1rem 0.75rem; border-bottom: 1px solid var(--line); vertical-align: top; }
-.dp-row td.dp-dish { width: 100%; padding-left: 0; }
-.dp-row:not(.is-extra) + .is-extra td { border-top: 2px solid var(--ink); } /* Linie vor Salat/Dessert */
-.dp-row:last-child td { border-bottom: 0; }
-.dp .dish-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 0.25rem 0.6rem; margin-bottom: 0.2rem; }
-.dp-price { min-width: 4.5rem; font-size: 1.1875rem; font-weight: 500; text-align: right; white-space: nowrap; }
+/* interner Preis klein unter dem (externen) Preis */
+.price-intern {
+  color: var(--muted);
+  font-size: 0.85rem;
+  line-height: 1.35;
+}
 .dp .pending { padding: 1rem 0 2rem; }
 
 @media (max-width: 40rem) {
-  .dp-table th, .dp-row td { padding-left: 0.4rem; }
-  .dp-table .is-ext { padding-left: 0.5rem; }
-  .dp-price { min-width: 0; font-size: 0.95rem; }
-  .dp .dish-de { font-size: 1.0625rem; }
+  .dp .dishes[data-prices="1"] .dish { grid-template-columns: minmax(0, 1fr) 4.75rem; column-gap: 0.75rem; }
+  .dp .dishes[data-prices="2"] .dish { grid-template-columns: minmax(0, 1fr) 4.75rem 4.75rem; column-gap: 0.75rem; }
+  .price-intern { font-size: 0.75rem; }
 }
 
 /* "Drucken" -> PDF: A4 hochkant. @page ohne Rand, damit der Browser keine eigene Kopf-/Fußzeile (Datum, URL) druckt;
@@ -702,21 +692,18 @@ a.linkbtn { display: inline-block; font-size: 0.8333rem; } /* gleiche Größe wi
   .dp-day { font-size: 26pt; letter-spacing: -0.02em; }
   .dp-date { font-size: 13pt; }
 
-  .dp-table th { padding: 1.5mm 0 1.5mm 3mm; font-size: 8pt; }
-  .dp-table .dp-group { font-size: 10pt; }
-  .dp-table thead tr:last-child th { border-bottom: 1.2pt solid #000; }
-  .dp-table .is-ext { border-left: 0.75pt solid var(--line); padding-left: 4mm; }
-
-  .dp-row { break-inside: avoid; }
-  .dp-row td { padding: 4mm 0 4mm 3mm; border-bottom: 0.5pt solid var(--line); }
-  .dp-row.is-extra td { padding-top: 3mm; padding-bottom: 3mm; }
-  .dp-row:not(.is-extra) + .is-extra td { border-top: 1.2pt solid #000; }
-
+  .dp .dishes { gap: 9mm; }
+  .dp .dish { break-inside: avoid; }
+  .dp .dish.is-extra-first { padding-top: 7mm; border-top: 1.2pt solid #000; }
+  .dp .dishes[data-prices="1"] .dish { grid-template-columns: minmax(0, 1fr) 24mm; column-gap: 4mm; }
+  .dp .dishes[data-prices="2"] .dish { grid-template-columns: minmax(0, 1fr) 24mm 24mm; column-gap: 4mm; }
+  .dp .price-value { font-size: 13pt; line-height: 1.25; }
+  .dp .price-intern { font-size: 8.5pt; line-height: 1.3; }
+  .dp .price-label { font-size: 7.5pt; }
   .dp .dish-meta { gap: 0 2mm; margin-bottom: 0.8mm; }
   .dp .dish-pos { font-size: 8pt; }
   .dp .pill { padding: 0 1.8mm; font-size: 8pt; }
   .dp .dish-de { font-size: 14pt; line-height: 1.25; }
   .dp .dish-en { font-size: 10.5pt; line-height: 1.3; }
   .dp .is-extra .dish-de { font-size: 12.5pt; }
-  .dp-price { min-width: 17mm; font-size: 13pt; }
 }

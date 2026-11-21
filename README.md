@@ -65,8 +65,9 @@ Am einfachsten die 20 Zeilen der Vorwoche kopieren und Datum und Gerichte änder
 
 **Tagesansicht und Tagesdruck (A4-Aushang für einen Tag):** In der Wochenansicht ist das **Datum** eines Tages ein Link.
 Er öffnet die Tagesansicht (Adresse `…/#tag/2026-11-23`, lässt sich auch direkt verlinken). Dort steht oben *Tag drucken*.
-Am Bildschirm sieht die Tagesansicht genauso aus wie der Ausdruck. Das Blatt zeigt alle Gerichte des Tages
-mit internen und externen Preisen (bei zwei Portionsgrößen jeweils Klein und Groß), darunter die festen Zeilen *Salat vom Büfett*
+Am Bildschirm sieht die Tagesansicht genauso aus wie der Ausdruck. Die Preise stehen wie in der Wochenkarte (Klein / Groß),
+groß jeweils der **externe** Preis und klein darunter „intern …". Fehlt der externe Preis, steht der interne groß. Das Blatt zeigt alle Gerichte des Tages,
+darunter die festen Zeilen *Salat vom Büfett*
 und *Dessert* und die Allergen-Legende nur für diesen Tag. Im Druckdialog „Als PDF sichern" wählen, um ein PDF zu bekommen.
 Text und Preise von Salat und Dessert sind **fest** und stehen in `site/app.js` bei `CONFIG.printExtras`
 (Preise als `"1,90"`, leer = ohne Preis; gilt ein Preis je Menge, das in den Namen schreiben, z. B. `Salat vom Büfett (je 100 g)`).
