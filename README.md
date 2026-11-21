@@ -12,11 +12,13 @@ dev-server.mjs         ← lokaler Webserver
 
 ## Lokal ansehen
 
-```powershell
+Im Terminal (macOS: *Terminal*, Windows: *PowerShell*) im Projektordner:
+
+```sh
 node dev-server.mjs
 ```
 
-Dann <http://localhost:5173> öffnen. `#2026-12-21` hinter der URL springt zur jeweiligen Woche.
+Dann <http://localhost:5173> öffnen (beenden mit `Ctrl+C`). `#2026-12-21` hinter der URL springt zur jeweiligen Woche.
 
 ## Google Sheet einrichten (einmalig)
 
@@ -95,8 +97,11 @@ Sollen Entwürfe nicht einsehbar sein, zwei Tabellenblätter verwenden:
 - Logo und endgültige Farben (Name steht in `CONFIG.title` in `app.js` sowie in den Kopfzeilen von Impressum/Datenschutz)
 - Impressum/Datenschutz sind als Entwurf angelegt (`site/impressum.html`, `site/datenschutz.html`): Angaben prüfen,
   ggf. USt-IdNr. ergänzen. Keine Rechtsberatung.
-- Subdomain festlegen und Repo/Deploy einrichten
 
 ## Feste Inhalte (nicht im Sheet)
 
-Öffnungszeiten und Adresse stehen direkt in `site/index.html` (Abschnitte `.hours`). Bei Änderungen dort anpassen und pushen.
+Öffnungszeiten und Adresse stehen direkt in `site/index.html`, und zwar an drei Stellen. Bei Änderungen alle drei anpassen und pushen:
+
+- Abschnitte `.hours` (Öffnungszeiten, „Hier finden Sie uns“)
+- Druckkopf `.print-head` (Zeile „Mittagstisch von … bis … Uhr“)
+- Druck-Fußzeile `.print-note` (Adresse, Telefon, E-Mail)
